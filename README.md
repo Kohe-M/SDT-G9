@@ -1,37 +1,110 @@
-# SDT-G9
-# 授業マッチングアプリ
+# SDT-G9 授業マッチングアプリ
 
-## 概要
+## アプリ概要
 
-一緒に授業を受ける人を探し、同じ授業を受ける学生同士で3人グループを作成してチャットできるWebアプリです。
+同じ授業を受ける学生同士でグループを作り、チャットできるようにする授業マッチングアプリです。
 
-授業コードを入力して時間割に授業を登録し、その授業のマッチングボタンを押すことで、同じ授業・同じコマでマッチングを希望しているユーザとグループを作成します。
-
-## 主な機能
-
-- ユーザ登録・ログイン
-- プロフィール登録
-  - ユーザ名
-  - モチベーション
-  - 授業の受け方
-- 授業コード入力
-- 時間割表示
-- マッチング機能
-- 3人グループ作成
-- グループチャット
-- マッチング完了通知
+今回の初期構成では、機能の本実装ではなく、各担当が作業を開始できるページ、サービス、ルーティング、共通レイアウトを用意しています。
 
 ## 使用技術
 
 - React
 - Vite
 - JavaScript
+- react-router-dom
 - Firebase Authentication
 - Cloud Firestore
-- Firebase Hosting
-- GitHub
 
-## ディレクトリ構成
+## セットアップ方法
+
+```bash
+npm install
+npm run dev
+```
+
+開発サーバー起動後、以下にアクセスできます。
+
+```text
+http://localhost:5173/
+http://localhost:5173/login
+http://localhost:5173/profile
+http://localhost:5173/timetable
+http://localhost:5173/classes/search
+http://localhost:5173/matching/TEST101
+http://localhost:5173/chat/test-group
+```
+
+ビルド確認は以下です。
+
+```bash
+npm run build
+```
+
+## 環境変数
+
+`.env.example` を参考に、各自で `.env.local` を作成してください。
+
+```env
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+```
+
+`.env.local` はGitHubに上げないでください。実際のFirebase設定値はGit管理しません。
+
+## Git運用ルール
+
+- `main` は動作する状態を保つ
+- 作業は担当ごとにブランチを分ける
+- `node_modules/`, `dist/`, `.env`, `.env.local` はコミットしない
+- 作業前に `npm install` を実行する
+- Pull Request前に `npm run build` を実行する
+
+## 担当範囲
+
+### A担当
+
+- GitHub管理
+- 画面遷移
+- 共通レイアウト
+- Header
+- README
+- 初期環境構築
+
+### B担当
+
+- ログイン
+- プロフィール
+- authService
+- userService
+
+### C担当
+
+- 授業登録
+- 時間割
+- 仮シラバス
+- classService
+
+### D担当
+
+- マッチング
+- チャット
+- matchingService
+- chatService
+
+## 各担当が触るファイル
+
+| 担当 | 主なファイル |
+| --- | --- |
+| A | `src/App.jsx`, `src/main.jsx`, `src/routes/AppRoutes.jsx`, `src/components/Layout.jsx`, `src/components/Header.jsx`, `src/constants/routes.js`, `src/styles/global.css`, `README.md` |
+| B | `src/pages/LoginPage.jsx`, `src/pages/ProfilePage.jsx`, `src/services/authService.js`, `src/services/userService.js` |
+| C | `src/pages/TimetablePage.jsx`, `src/pages/ClassSearchPage.jsx`, `src/services/classService.js`, `src/data/syllabus.js` |
+| D | `src/pages/MatchingPage.jsx`, `src/pages/ChatPage.jsx`, `src/services/matchingService.js`, `src/services/chatService.js` |
+
+## 現在の構成
 
 ```text
 src/
@@ -50,10 +123,7 @@ src/
 │  └─ ChatPage.jsx
 ├─ components/
 │  ├─ Header.jsx
-│  ├─ Layout.jsx
-│  ├─ Button.jsx
-│  ├─ Loading.jsx
-│  └─ ErrorMessage.jsx
+│  └─ Layout.jsx
 ├─ services/
 │  ├─ authService.js
 │  ├─ userService.js
@@ -67,130 +137,3 @@ src/
 └─ styles/
    └─ global.css
 ```
-
-## セットアップ方法
-
-### 1. リポジトリをクローン
-
-```bash
-git clone https://github.com/ユーザ名/リポジトリ名.git
-cd リポジトリ名
-```
-
-### 2. パッケージをインストール
-
-```bash
-npm install
-```
-
-### 3. 環境変数ファイルを作成
-
-プロジェクト直下に `.env.local` を作成し、Firebaseの設定値を記述します。
-
-```env
-VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=
-VITE_FIREBASE_PROJECT_ID=
-VITE_FIREBASE_STORAGE_BUCKET=
-VITE_FIREBASE_MESSAGING_SENDER_ID=
-VITE_FIREBASE_APP_ID=
-```
-
-### 4. 開発サーバを起動
-
-```bash
-npm run dev
-```
-
-## Firebase設定
-
-このアプリでは、以下のFirebase機能を使用します。
-
-- Firebase Authentication
-  - メールアドレス・パスワードによるログイン
-- Cloud Firestore
-  - ユーザ情報
-  - 授業情報
-  - マッチング情報
-  - グループ情報
-  - チャットメッセージ
-- Firebase Hosting
-  - Webアプリの公開
-
-Firebaseの設定値は `src/firebase.js` で読み込みます。
-
-## Firestoreの主なデータ構造
-
-### users
-
-```js
-users/{userId}
-{
-  name: "ユーザ名",
-  motivation: "高め",
-  studyStyle: "静かに受けたい",
-  createdAt: timestamp
-}
-```
-
-### classes
-
-```js
-classes/{classCode}
-{
-  code: "IS101",
-  name: "ソフトウェア開発論",
-  day: "月",
-  period: 3,
-  teacher: "担当教員"
-}
-```
-
-### matchRequests
-
-```js
-matchRequests/{requestId}
-{
-  userId: "user001",
-  classCode: "IS101",
-  day: "月",
-  period: 3,
-  motivation: "高め",
-  studyStyle: "静かに受けたい",
-  status: "waiting",
-  createdAt: timestamp
-}
-```
-
-### groups
-
-```js
-groups/{groupId}
-{
-  classCode: "IS101",
-  day: "月",
-  period: 3,
-  members: ["user001", "user002", "user003"],
-  createdAt: timestamp
-}
-```
-
-### messages
-
-```js
-groups/{groupId}/messages/{messageId}
-{
-  userId: "user001",
-  text: "よろしくお願いします",
-  createdAt: timestamp
-}
-```
-
-## 担当範囲
-
-| 担当 | 内容 | 主に触るファイル |
-|---|---|---|
-| A | GitHub管理、画面遷移、共通レイアウト、README | `App.jsx`, `routes/`, `components/Layout.jsx`, `components/Header.jsx`, `README.md` |
-| B | ログイン、プロフィール | `LoginPage.jsx`, `ProfilePage.jsx`, `authService.js`, `userService.js` |
-| C | 授業登録、時間割、仮シラバス | `TimetablePage.jsx`, `ClassSearchPage.jsx`, `classService.js`, `syllabus.js` |
-| D | マッチング、チャット | `MatchingPage.jsx`, `ChatPage.jsx`, `matchingService.js`, `chatService.js` |
