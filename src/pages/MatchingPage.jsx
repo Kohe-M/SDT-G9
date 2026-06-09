@@ -1,6 +1,7 @@
 // MatchingPage.jsx
 import { useParams } from "react-router-dom";
 import { useState } from "react";
+import { createMatchRequest } from "../services/matchingService";
 
 export default function MatchingPage() {
   const { classCode } = useParams();
@@ -8,7 +9,8 @@ export default function MatchingPage() {
 
 
   const handleMatch = () => {
-    setStatus("待機中...");
+    createMatchRequest("User001", classCode);
+    setStatus("待機中..."); 
   };
 
 
