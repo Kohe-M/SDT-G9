@@ -1,13 +1,16 @@
 // ChatPage.jsx
 import { useParams } from "react-router-dom";
 import { useState } from "react";
+import { sendMessage } from "../services/chatService";
 
 export default function ChatPage() {
   const { groupId } = useParams();
   const [text, setText] = useState("");
 
   const handleSend = () => {
-    console.log("送信:", text);
+    if (!text) return;
+    sendMessage(groupId, "User001", text);
+    setText("");  //送信後、入力欄が空にする。
   };
 
   return (
@@ -18,7 +21,7 @@ export default function ChatPage() {
       <input
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="メッセージ"
+        placeholder="メッセージを入力"
       />
 
       <button onClick={handleSend}>
