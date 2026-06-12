@@ -5,7 +5,6 @@ export function filterClasses(classes, keyword) {
   return classes.filter(
     (c) =>
       c.name.toLowerCase().includes(lower) ||
-      c.teacher.toLowerCase().includes(lower) ||
       c.code.toLowerCase().includes(lower)
   );
 }
