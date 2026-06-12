@@ -45,7 +45,7 @@ export default function TimetablePage() {
                     {classItem ? (
                       <div>
                         <p>{classItem.name}</p>
-                        <p>{classItem.teacher}</p>
+                        {classItem.room && <p>{classItem.room}</p>}
                         <Link to={`/matching/${classItem.code}`}>
                           マッチング
                         </Link>

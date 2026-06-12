@@ -35,6 +35,7 @@ export default function ClassSearchPage() {
     addClassToTimetable({
       code: found.code,
       name: found.name,
+      room: found.room || "",
       day: selectedDay,
       period: selectedPeriod,
       syllabusUrl: found.syllabusUrl,
@@ -70,6 +71,7 @@ export default function ClassSearchPage() {
         {found && (
           <div>
             <p>科目名: {found.name}</p>
+            {found.room && <p>教室: {found.room}</p>}
             <p>
               <a href={found.syllabusUrl} target="_blank" rel="noreferrer">
                 シラバスを見る
