@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { getMyClasses, removeClassFromTimetable } from "../services/classService";
 
 const DAYS = ["月", "火", "水", "木", "金"];
@@ -45,6 +46,9 @@ export default function TimetablePage() {
                       <div>
                         <p>{classItem.name}</p>
                         <p>{classItem.teacher}</p>
+                        <Link to={`/matching/${classItem.code}`}>
+                          マッチング
+                        </Link>
                         <button onClick={() => handleRemove(classItem.code)}>
                           削除
                         </button>

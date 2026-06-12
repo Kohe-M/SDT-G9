@@ -1,17 +1,10 @@
 import { syllabusData } from "../data/syllabus";
+import { filterClasses } from "../utils/classUtils";
 
 const TIMETABLE_STORAGE_KEY = "timetable_class_codes";
 
 export function searchClasses(keyword) {
-  if (!keyword) return syllabusData;
-
-  const lowerKeyword = keyword.toLowerCase();
-  return syllabusData.filter(
-    (classItem) =>
-      classItem.name.toLowerCase().includes(lowerKeyword) ||
-      classItem.teacher.toLowerCase().includes(lowerKeyword) ||
-      classItem.code.toLowerCase().includes(lowerKeyword)
-  );
+  return filterClasses(syllabusData, keyword);
 }
 
 export function getClassByCode(code) {
