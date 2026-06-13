@@ -9,7 +9,7 @@ export default function MatchingPage() {
 
 
   const handleMatch = () => {
-    createMatchRequest("User001", classCode);
+    createMatchRequest("User001", classCode); //仮ユーザーIDです！ "User001"を実際のユーザーIDに置き換えてください。
     setStatus("待機中..."); 
   };
 

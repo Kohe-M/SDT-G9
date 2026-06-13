@@ -10,7 +10,7 @@ export default function ChatPage() {
 
   const handleSend = () => {
     if (!text) return;
-    sendMessage(groupId, "User001", text);
+    sendMessage(groupId, "User001", text); //仮ユーザーIDです！ "User001"を実際のユーザーIDに置き換えてください。
     setMessages([...messages, text]); //送信したメッセージを画面に更新表示
     setText("");  //送信後、入力欄が空にする。
   };
