@@ -26,6 +26,8 @@ npm install
 npm run dev
 ```
 
+Pull requests to `main` are verified by GitHub Actions (`CI / build`).
+
 開発サーバー起動後、以下にアクセスできます。
 
 ```text
