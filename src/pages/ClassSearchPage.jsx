@@ -1,127 +1,233 @@
 import { useState } from "react";
-import { searchClasses, getClassByCode, addClassToTimetable } from "../services/classService";
+import { searchClasses, addClassToTimetable } from "../services/classService";
 
 const DAYS = ["月", "火", "水", "木", "金"];
 const PERIODS = [1, 2, 3, 4, 5];
 
+const C = {
+  bg: "#F4F1EA",
+  card: "#FCFBF8",
+  line: "#E6E0D5",
+  ink: "#3D3A33",
+  inkSoft: "#6F6A5F",
+  inkFaint: "#A39D90",
+  mauve: "#B98AAE",
+  mauveDeep: "#9C6A8E",
+  mauveSoft: "#F1E7EF",
+  sage: "#8FA98C",
+  sageDeep: "#6E8C6B",
+  sageSoft: "#E8EEE6",
+};
+
 export default function ClassSearchPage() {
   const [keyword, setKeyword] = useState("");
   const [results, setResults] = useState([]);
-  const [classCode, setClassCode] = useState("");
-  const [found, setFound] = useState(null);
-  const [selectedDay, setSelectedDay] = useState("月");
+  const [registering, setRegistering] = useState(null);
+  const [selectedDay, setSelectedDay] = useState(0);
   const [selectedPeriod, setSelectedPeriod] = useState(1);
-  const [message, setMessage] = useState("");
+  const [toast, setToast] = useState(null);
 
-  function handleSearch(event) {
-    event.preventDefault();
-    setResults(searchClasses(keyword));
-  }
-
-  function handleCodeSubmit(event) {
-    event.preventDefault();
-    const classItem = getClassByCode(classCode.trim());
-    if (!classItem) {
-      setFound(null);
-      setMessage("該当する授業が見つかりませんでした");
-      return;
-    }
-    setFound(classItem);
-    setMessage("");
+  function handleSearch(e) {
+    e.preventDefault();
+    const found = searchClasses(keyword);
+    setResults(found);
+    setRegistering(null);
   }
 
   function handleRegister() {
-    if (!found) return;
+    if (!registering) return;
     addClassToTimetable({
-      code: found.code,
-      name: found.name,
-      room: found.room || "",
-      day: selectedDay,
+      code: registering.code,
+      name: registering.name,
+      room: registering.room || "",
+      day: DAYS[selectedDay],
       period: selectedPeriod,
-      syllabusUrl: found.syllabusUrl,
+      syllabusUrl: registering.syllabusUrl || "",
     });
-    setMessage(`「${found.name}」を${selectedDay}曜${selectedPeriod}限に追加しました`);
-    setFound(null);
-    setClassCode("");
+    showToast(`「${registering.name}」を${DAYS[selectedDay]}曜${selectedPeriod}限に追加しました`);
+    setRegistering(null);
   }
 
-  function handleQuickRegister(classItem) {
-    setFound(classItem);
-    setClassCode(classItem.code);
-    setMessage("");
-    window.scrollTo(0, 0);
+  function showToast(text) {
+    setToast(text);
+    setTimeout(() => setToast(null), 2200);
   }
 
   return (
-    <div>
-      <h1>授業検索</h1>
+    <div style={{ background: C.bg, minHeight: "100vh", padding: "12px 16px 60px", position: "relative" }}>
+      <div style={{ fontSize: 22, fontWeight: 700, color: C.ink, padding: "8px 2px 14px", letterSpacing: 0.4 }}>
+        授業を探す
+      </div>
 
-      <section>
-        <h2>授業コードで追加</h2>
-        <form onSubmit={handleCodeSubmit}>
-          <input
-            type="text"
-            value={classCode}
-            onChange={(e) => setClassCode(e.target.value)}
-            placeholder="例: 53382"
-          />
-          <button type="submit">検索</button>
-        </form>
+      {/* search form */}
+      <form onSubmit={handleSearch} style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        <input
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+          placeholder="授業名・授業コードで検索"
+          style={{
+            flex: 1, minWidth: 0,
+            border: `1.5px solid ${C.line}`, borderRadius: 14,
+            padding: "13px 15px", fontSize: 15, fontWeight: 500,
+            color: C.ink, background: C.card, outline: "none",
+          }}
+        />
+        <button
+          type="submit"
+          style={{
+            appearance: "none", border: "none", cursor: "pointer",
+            background: C.mauve, color: "#fff", borderRadius: 14,
+            padding: "0 20px", fontSize: 14.5, fontWeight: 700,
+          }}
+        >
+          検索
+        </button>
+      </form>
 
-        {found && (
-          <div>
-            <p>科目名: {found.name}</p>
-            {found.room && <p>教室: {found.room}</p>}
-            <p>
-              <a href={found.syllabusUrl} target="_blank" rel="noreferrer">
-                シラバスを見る
-              </a>
-            </p>
-            <label>
-              曜日:
-              <select value={selectedDay} onChange={(e) => setSelectedDay(e.target.value)}>
-                {DAYS.map((d) => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </label>
-            <label>
-              時限:
-              <select value={selectedPeriod} onChange={(e) => setSelectedPeriod(Number(e.target.value))}>
-                {PERIODS.map((p) => <option key={p} value={p}>{p}限</option>)}
-              </select>
-            </label>
-            <button onClick={handleRegister}>時間割に追加</button>
+      {/* results */}
+      {results.length === 0 && keyword && (
+        <div style={{ textAlign: "center", color: C.inkFaint, fontSize: 14, padding: "40px 0" }}>
+          該当する授業が見つかりませんでした
+        </div>
+      )}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {results.map((item) => {
+          const isOpen = registering?.code === item.code;
+          return (
+            <div
+              key={item.code}
+              style={{
+                background: C.card, border: `1.5px solid ${isOpen ? C.mauve : C.line}`,
+                borderRadius: 18, padding: "14px 16px",
+                transition: "border-color .15s ease",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: C.ink, lineHeight: 1.3 }}>{item.name}</div>
+                  <div style={{ fontSize: 12, color: C.inkFaint, marginTop: 3, fontWeight: 500 }}>
+                    {item.code}
+                    {item.room && ` ・ ${item.room}`}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                  {item.syllabusUrl && (
+                    <a
+                      href={item.syllabusUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        display: "inline-flex", alignItems: "center",
+                        fontSize: 12, color: C.mauveDeep, fontWeight: 600, textDecoration: "none",
+                        background: C.mauveSoft, padding: "6px 10px", borderRadius: 999,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      ↗ シラバス
+                    </a>
+                  )}
+                  <button
+                    onClick={() => {
+                      if (isOpen) {
+                        setRegistering(null);
+                      } else {
+                        setRegistering(item);
+                        setSelectedDay(0);
+                        setSelectedPeriod(1);
+                      }
+                    }}
+                    style={{
+                      appearance: "none", cursor: "pointer",
+                      background: isOpen ? C.line : C.mauve,
+                      color: isOpen ? C.inkSoft : "#fff",
+                      border: "none", borderRadius: 999,
+                      padding: "6px 14px", fontSize: 12.5, fontWeight: 700,
+                      whiteSpace: "nowrap", transition: "all .15s ease",
+                    }}
+                  >
+                    {isOpen ? "閉じる" : "追加"}
+                  </button>
+                </div>
+              </div>
+
+              {/* inline register panel */}
+              {isOpen && (
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.line}` }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: C.ink, marginBottom: 8 }}>曜日</div>
+                  <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+                    {DAYS.map((d, di) => (
+                      <button
+                        key={d}
+                        onClick={() => setSelectedDay(di)}
+                        style={{
+                          flex: 1, appearance: "none", cursor: "pointer", padding: "9px 0",
+                          borderRadius: 10, fontSize: 13.5, fontWeight: 700,
+                          border: `1.5px solid ${selectedDay === di ? C.mauve : C.line}`,
+                          background: selectedDay === di ? C.mauveSoft : C.bg,
+                          color: selectedDay === di ? C.mauveDeep : C.inkSoft,
+                          transition: "all .13s ease",
+                        }}
+                      >
+                        {d}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: C.ink, marginBottom: 8 }}>時限</div>
+                  <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+                    {PERIODS.map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setSelectedPeriod(p)}
+                        style={{
+                          flex: 1, appearance: "none", cursor: "pointer", padding: "9px 0",
+                          borderRadius: 10, fontSize: 13.5, fontWeight: 700,
+                          border: `1.5px solid ${selectedPeriod === p ? C.mauve : C.line}`,
+                          background: selectedPeriod === p ? C.mauveSoft : C.bg,
+                          color: selectedPeriod === p ? C.mauveDeep : C.inkSoft,
+                          transition: "all .13s ease",
+                        }}
+                      >
+                        {p}限
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={handleRegister}
+                    style={{
+                      width: "100%", appearance: "none", border: "none", cursor: "pointer",
+                      background: C.mauve, color: "#fff", borderRadius: 14, padding: "13px 0",
+                      fontSize: 14.5, fontWeight: 700, letterSpacing: 0.4,
+                      boxShadow: `0 8px 20px -10px ${C.mauve}`,
+                    }}
+                  >
+                    時間割に登録する
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {toast && (
+        <div style={{
+          position: "fixed", left: 0, right: 0, bottom: 40,
+          display: "flex", justifyContent: "center",
+          pointerEvents: "none", zIndex: 100,
+        }}>
+          <div style={{
+            background: "rgba(61,58,51,0.92)", color: "#FCFBF8",
+            fontSize: 13, fontWeight: 600, padding: "10px 18px", borderRadius: 999,
+            display: "inline-flex", alignItems: "center", gap: 7,
+            boxShadow: "0 12px 30px -12px rgba(0,0,0,0.5)",
+          }}>
+            ✓ {toast}
           </div>
-        )}
-
-        {message && <p>{message}</p>}
-      </section>
-
-      <section>
-        <h2>キーワードで検索</h2>
-        <form onSubmit={handleSearch}>
-          <input
-            type="text"
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            placeholder="授業名・授業コード"
-          />
-          <button type="submit">検索</button>
-        </form>
-
-        <ul>
-          {results.map((classItem) => (
-            <li key={classItem.code}>
-              {classItem.code} / {classItem.name}
-              <a href={classItem.syllabusUrl} target="_blank" rel="noreferrer">
-                　シラバス
-              </a>
-              <button onClick={() => handleQuickRegister(classItem)}>
-                登録
-              </button>
-            </li>
-          ))}
-        </ul>
-      </section>
+        </div>
+      )}
     </div>
   );
 }
