@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { HashRouter, Route, Routes } from "react-router-dom";
 import Layout from "../components/Layout";
 import ChatPage from "../pages/ChatPage";
 import ClassSearchPage from "../pages/ClassSearchPage";
@@ -10,7 +10,7 @@ import TimetablePage from "../pages/TimetablePage";
 
 export default function AppRoutes() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<HomePage />} />
@@ -22,6 +22,6 @@ export default function AppRoutes() {
           <Route path="/chat/:groupId" element={<ChatPage />} />
         </Route>
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
