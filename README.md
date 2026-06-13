@@ -55,6 +55,38 @@ VITE_FIREBASE_APP_ID=
 
 `.env.local` はGitHubに上げないでください。実際のFirebase設定値はGit管理しません。
 
+## Firebase運用メモ
+
+### Firebase Console側の設定
+
+A担当がFirebase Consoleで以下を設定済みです。
+
+- Firebase AuthenticationでEmail/Passwordを有効化済み
+- Cloud Firestore Databaseを作成済み
+- Firestore Rulesはログイン済みユーザーによる利用を前提に設定
+
+GitHub Pagesへの公開後、Firebase Authenticationでドメインエラーが出た場合は、Firebase ConsoleのAuthenticationにあるAuthorized domainsへ `kohe-m.github.io` を追加してください。
+
+### 各自のローカル設定
+
+各自で `.env.example` をコピーし、 `.env.local` を作成してください。Firebaseの設定値は `.env.local` に記載します。
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+**`.env.local` はGit管理せず、GitHubへ絶対に上げないでください。**
+
+### Firebaseを使うコード
+
+各ファイルで `initializeApp` を書かず、既存の `src/firebase.js` で初期化済みの `auth` と `db` をimportして使用してください。
+
+```js
+import { auth, db } from "../firebase";
+```
+
+importの相対パスは、使用するファイルの場所に合わせて調整してください。
+
 ## Git運用ルール
 
 - `main` は動作する状態を保つ
