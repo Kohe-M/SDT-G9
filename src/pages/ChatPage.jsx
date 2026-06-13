@@ -6,10 +6,12 @@ import { sendMessage } from "../services/chatService";
 export default function ChatPage() {
   const { groupId } = useParams();
   const [text, setText] = useState("");
+  const [messages, setMessages] = useState([]);
 
   const handleSend = () => {
     if (!text) return;
     sendMessage(groupId, "User001", text);
+    setMessages([...messages, text]); //送信したメッセージを画面に更新表示
     setText("");  //送信後、入力欄が空にする。
   };
 
@@ -27,6 +29,12 @@ export default function ChatPage() {
       <button onClick={handleSend}>
         送信
       </button>
+
+       {/* メッセージ一覧表示 */}
+      <div>
+        {messages.map((msg, index) => (<p key={index}>{msg}</p>))}
+      </div>
+
     </div>
   );
 }
