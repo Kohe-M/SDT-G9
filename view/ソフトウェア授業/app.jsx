@@ -1,0 +1,141 @@
+// app.jsx — shell: theme vars, screen routing, bottom tab bar, Tweaks
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accent": ["#B98AAE", "#9C6A8E", "#F1E7EF"],
+  "calm": ["#8FA98C", "#6E8C6B", "#E8EEE6"],
+  "headingFont": "Zen Maru Gothic",
+  "copyTone": "humor",
+  "showCount": true
+}/*EDITMODE-END*/;
+
+const TABS = [
+  { id: 'bocchi', label: 'ぼっち', icon: 'bocchi' },
+  { id: 'timetable', label: '時間割', icon: 'grid' },
+  { id: 'profile', label: 'プロフィール', icon: 'person' },
+];
+
+function App() {
+  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const [tab, setTab] = React.useState(() => localStorage.getItem('cm_tab') || 'bocchi');
+  React.useEffect(() => { localStorage.setItem('cm_tab', tab); }, [tab]);
+
+  const [am, ad, asoft] = t.accent;
+  const [cm, cd, csoft] = t.calm;
+
+  const themeVars = {
+    '--bg': '#F4F1EA',
+    '--card': '#FCFBF8',
+    '--line': '#E6E0D5',
+    '--ink': '#3D3A33',
+    '--ink-soft': '#6F6A5F',
+    '--ink-faint': '#A39D90',
+    '--mauve': am, '--mauve-deep': ad, '--mauve-soft': asoft,
+    '--sage': cm, '--sage-deep': cd, '--sage-soft': csoft,
+  };
+
+  // expose chosen heading font to the shared HEAD usages via a CSS var override
+  const headFamily = `"${t.headingFont}", "Zen Kaku Gothic New", sans-serif`;
+
+  const Screen = { bocchi: BocchiScreen, timetable: TimetableScreen, profile: ProfileScreen }[tab];
+
+  return (
+    <div style={{ ...themeVars }}>
+      <style>{`
+        :root { --head: ${headFamily}; }
+        .cm-head { font-family: ${headFamily} !important; }
+      `}</style>
+
+      <IOSDevice width={402} height={874}>
+        <div style={{
+          height: '100%', display: 'flex', flexDirection: 'column', position: 'relative',
+          background: 'var(--bg)', fontFamily: BODY, color: 'var(--ink)',
+        }}>
+          {/* top breathing space below the dynamic island */}
+          <div style={{ height: 58, flexShrink: 0 }} />
+
+          {/* scrollable screen area */}
+          <div className="noscroll" style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <Screen
+              copyTone={t.copyTone}
+              showCount={t.showCount}
+              key={tab}
+            />
+          </div>
+
+          {/* bottom tab bar */}
+          <TabBar tab={tab} setTab={setTab} headFont={headFamily} />
+
+          {/* overlays (sheets / matching) mount here so they anchor to the device, not the scroll area */}
+          <div id="cm-overlay-root" style={{ position: 'absolute', inset: 0, zIndex: 70, pointerEvents: 'none' }} />
+        </div>
+      </IOSDevice>
+
+      <TweaksPanel>
+        <TweakSection label="カラー" />
+        <TweakColor label="アクセント（がっつり）" value={t.accent}
+          options={[
+            ['#B98AAE', '#9C6A8E', '#F1E7EF'],
+            ['#7C9CC4', '#5E7DA6', '#E6ECF4'],
+            ['#E0A368', '#BE8348', '#F6ECDD'],
+            ['#A99BC9', '#867BA8', '#ECE8F3'],
+          ]}
+          onChange={(v) => setTweak('accent', v)} />
+        <TweakColor label="サブ（ゆる）" value={t.calm}
+          options={[
+            ['#8FA98C', '#6E8C6B', '#E8EEE6'],
+            ['#9DB0A6', '#7B9087', '#E9EEEB'],
+            ['#C2B58C', '#9E9068', '#F1EDE0'],
+          ]}
+          onChange={(v) => setTweak('calm', v)} />
+
+        <TweakSection label="トーン" />
+        <TweakRadio label="見出しフォント" value={t.headingFont}
+          options={['Zen Maru Gothic', 'Zen Kaku Gothic New']}
+          onChange={(v) => setTweak('headingFont', v)} />
+        <TweakSelect label="ボタンのコピー" value={t.copyTone}
+          options={['humor', 'gentle', 'neutral']}
+          onChange={(v) => setTweak('copyTone', v)} />
+        <TweakToggle label="待ち人数を表示" value={t.showCount}
+          onChange={(v) => setTweak('showCount', v)} />
+      </TweaksPanel>
+    </div>
+  );
+}
+
+function TabBar({ tab, setTab, headFont }) {
+  return (
+    <div style={{
+      flexShrink: 0, background: 'rgba(252,251,248,0.88)',
+      backdropFilter: 'blur(16px) saturate(180%)', WebkitBackdropFilter: 'blur(16px) saturate(180%)',
+      borderTop: '1px solid var(--line)',
+      paddingBottom: 28, paddingTop: 9,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-start' }}>
+        {TABS.map((tb) => {
+          const on = tab === tb.id;
+          return (
+            <button key={tb.id} onClick={() => setTab(tb.id)} style={{
+              appearance: 'none', border: 'none', background: 'transparent', cursor: 'pointer',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+              padding: '4px 14px', flex: 1, fontFamily: BODY,
+            }}>
+              <div style={{
+                width: 52, height: 30, borderRadius: 999,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: on ? 'var(--mauve-soft)' : 'transparent', transition: 'background .2s ease',
+              }}>
+                <Icon name={tb.icon} size={23} color={on ? 'var(--mauve-deep)' : 'var(--ink-faint)'} strokeWidth={on ? 2.1 : 1.8} />
+              </div>
+              <span style={{
+                fontSize: 10.5, fontWeight: on ? 700 : 500,
+                color: on ? 'var(--mauve-deep)' : 'var(--ink-faint)',
+              }}>{tb.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
