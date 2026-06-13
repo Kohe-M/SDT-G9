@@ -34,6 +34,10 @@ export function Icon({ name, size = 24, color = "currentColor", strokeWidth = 1.
     external: <g {...p}><path d="M13.5 5.5H19V11" /><path d="M19 5.5l-7.5 7.5" /><path d="M17 13.5V18a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 5 18V9a1.5 1.5 0 0 1 1.5-1.5H11" /></g>,
     search: <g {...p}><circle cx="11" cy="11" r="6.3" /><path d="M15.6 15.6L20 20" /></g>,
     link: <g {...p}><path d="M10.5 13.5l3-3" /><path d="M12 7.2l1.3-1.3a3.4 3.4 0 0 1 4.8 4.8L16.8 12" /><path d="M12 16.8l-1.3 1.3a3.4 3.4 0 0 1-4.8-4.8L7.2 12" /></g>,
+    arrowLeft: <g {...p}><path d="M19 12H5M12 5l-7 7 7 7" /></g>,
+    send: <g {...p}><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7Z" /></g>,
+    eye: <g {...p}><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></g>,
+    eyeOff: <g {...p}><path d="M17.94 17.94A10 10 0 0 1 12 20c-6.4 0-10-8-10-8a18 18 0 0 1 5.06-5.94M9.9 4.24A9 9 0 0 1 12 4c6.4 0 10 8 10 8a18 18 0 0 1-2.16 3.19" /><path d="M1 1l22 22" /></g>,
   };
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" style={{ display: "block", flexShrink: 0 }}>

@@ -108,7 +108,7 @@ function BocchiButton({ tone, label, sub, count, showCount, onPress }) {
   );
 }
 
-function BocchiScreen({ copyTone = 'humor', showCount = true }) {
+function BocchiScreen({ copyTone = 'humor', showCount = true, onOpenChat }) {
   const [match, setMatch] = React.useState(null); // null | {phase, tone}
   const copy = BOCCHI_COPY[copyTone] || BOCCHI_COPY.humor;
 
@@ -146,13 +146,13 @@ function BocchiScreen({ copyTone = 'humor', showCount = true }) {
         </div>
       </div>
 
-      {match && <MatchOverlay state={match} onClose={() => setMatch(null)} />}
+      {match && <MatchOverlay state={match} onClose={() => setMatch(null)} onOpenChat={onOpenChat} />}
     </div>
   );
 }
 
 // ───────────────────────── Matching overlay ─────────────────────────
-function MatchOverlay({ state, onClose }) {
+function MatchOverlay({ state, onClose, onOpenChat }) {
   const tone = state.tone;
   const mauve = tone === 'mauve';
   const accent = mauve ? C.mauve : C.sage;
@@ -227,7 +227,10 @@ function MatchOverlay({ state, onClose }) {
               </div>
             </div>
 
-            <button onClick={onClose} style={{
+            <button onClick={() => {
+              if (onOpenChat) onOpenChat({ id: 'm-' + tone, title: 'ミクロ経済学Ⅰ のグループ', members: 3, tone });
+              else onClose();
+            }} style={{
               width: '100%', marginTop: 16, appearance: 'none', border: 'none', cursor: 'pointer',
               background: accent, color: '#fff', borderRadius: 16, padding: '15px 0',
               fontFamily: BODY, fontSize: 15.5, fontWeight: 700, letterSpacing: 0.4,

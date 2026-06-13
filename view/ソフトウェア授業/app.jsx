@@ -19,6 +19,10 @@ function App() {
   const [tab, setTab] = React.useState(() => localStorage.getItem('cm_tab') || 'bocchi');
   React.useEffect(() => { localStorage.setItem('cm_tab', tab); }, [tab]);
 
+  const [authed, setAuthed] = React.useState(() => localStorage.getItem('cm_authed') === '1');
+  React.useEffect(() => { localStorage.setItem('cm_authed', authed ? '1' : '0'); }, [authed]);
+  const [chat, setChat] = React.useState(null); // null | {id, title, members, tone}
+
   const [am, ad, asoft] = t.accent;
   const [cm, cd, csoft] = t.calm;
 
@@ -38,6 +42,39 @@ function App() {
 
   const Screen = { bocchi: BocchiScreen, timetable: TimetableScreen, profile: ProfileScreen }[tab];
 
+  let body;
+  if (!authed) {
+    body = <LoginScreen onAuthed={() => setAuthed(true)} />;
+  } else if (chat) {
+    body = <ChatScreen group={chat} onBack={() => setChat(null)} />;
+  } else {
+    body = (
+      <div style={{
+        height: '100%', display: 'flex', flexDirection: 'column', position: 'relative',
+        background: 'var(--bg)', fontFamily: BODY, color: 'var(--ink)',
+      }}>
+        {/* top breathing space below the dynamic island */}
+        <div style={{ height: 58, flexShrink: 0 }} />
+
+        {/* scrollable screen area */}
+        <div className="noscroll" style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <Screen
+            copyTone={t.copyTone}
+            showCount={t.showCount}
+            onOpenChat={setChat}
+            key={tab}
+          />
+        </div>
+
+        {/* bottom tab bar */}
+        <TabBar tab={tab} setTab={setTab} headFont={headFamily} />
+
+        {/* overlays (sheets / matching) mount here so they anchor to the device, not the scroll area */}
+        <div id="cm-overlay-root" style={{ position: 'absolute', inset: 0, zIndex: 70, pointerEvents: 'none' }} />
+      </div>
+    );
+  }
+
   return (
     <div style={{ ...themeVars }}>
       <style>{`
@@ -46,28 +83,7 @@ function App() {
       `}</style>
 
       <IOSDevice width={402} height={874}>
-        <div style={{
-          height: '100%', display: 'flex', flexDirection: 'column', position: 'relative',
-          background: 'var(--bg)', fontFamily: BODY, color: 'var(--ink)',
-        }}>
-          {/* top breathing space below the dynamic island */}
-          <div style={{ height: 58, flexShrink: 0 }} />
-
-          {/* scrollable screen area */}
-          <div className="noscroll" style={{ flex: 1, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
-            <Screen
-              copyTone={t.copyTone}
-              showCount={t.showCount}
-              key={tab}
-            />
-          </div>
-
-          {/* bottom tab bar */}
-          <TabBar tab={tab} setTab={setTab} headFont={headFamily} />
-
-          {/* overlays (sheets / matching) mount here so they anchor to the device, not the scroll area */}
-          <div id="cm-overlay-root" style={{ position: 'absolute', inset: 0, zIndex: 70, pointerEvents: 'none' }} />
-        </div>
+        {body}
       </IOSDevice>
 
       <TweaksPanel>
@@ -97,6 +113,10 @@ function App() {
           onChange={(v) => setTweak('copyTone', v)} />
         <TweakToggle label="待ち人数を表示" value={t.showCount}
           onChange={(v) => setTweak('showCount', v)} />
+
+        <TweakSection label="画面" />
+        <TweakButton label="ログイン画面を見る" onClick={() => { setChat(null); setAuthed(false); }} />
+        <TweakButton label="チャット画面を見る" onClick={() => { setAuthed(true); setChat({ id: 'demo', title: 'ミクロ経済学Ⅰ のグループ', members: 3, tone: 'sage' }); }} />
       </TweaksPanel>
     </div>
   );
