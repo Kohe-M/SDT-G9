@@ -6,6 +6,10 @@
 
 今回の初期構成では、機能の本実装ではなく、各担当が作業を開始できるページ、サービス、ルーティング、共通レイアウトを用意しています。
 
+## 公開URL
+
+https://kohe-m.github.io/SDT-G9/
+
 ## 使用技術
 
 - React
@@ -21,6 +25,8 @@
 npm install
 npm run dev
 ```
+
+Pull requests to `main` are verified by GitHub Actions (`CI / build`).
 
 開発サーバー起動後、以下にアクセスできます。
 
