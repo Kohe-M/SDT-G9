@@ -18,15 +18,18 @@ https://kohe-m.github.io/SDT-G9/
 - react-router-dom
 - Firebase Authentication
 - Cloud Firestore
+- GitHub Actions
+- Vitest
 
 ## セットアップ方法
 
 ```bash
 npm install
+npm test
 npm run dev
 ```
 
-Pull requests to `main` are verified by GitHub Actions (`CI / build`).
+Pull requests to `main` are verified by GitHub Actions (`CI / ci-build`), which runs the unit tests and build.
 
 開発サーバー起動後、以下にアクセスできます。
 
@@ -40,11 +43,14 @@ http://localhost:5173/matching/TEST101
 http://localhost:5173/chat/test-group
 ```
 
-ビルド確認は以下です。
+テストとビルドの確認は以下です。
 
 ```bash
+npm test
 npm run build
 ```
+
+テスト方針の詳細は [docs/test-plan.md](docs/test-plan.md) を参照してください。
 
 ## 環境変数
 
@@ -99,7 +105,7 @@ importの相対パスは、使用するファイルの場所に合わせて調�
 - 作業は担当ごとにブランチを分ける
 - `node_modules/`, `dist/`, `.env`, `.env.local` はコミットしない
 - 作業前に `npm install` を実行する
-- Pull Request前に `npm run build` を実行する
+- Pull Request前に `npm test`、`npm run build` の順で実行する
 
 ## 担当範囲
 
