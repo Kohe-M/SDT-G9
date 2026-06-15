@@ -24,3 +24,4 @@ export const getUserProfile = async (userId) => {
     return null; // データがなければnullを返す
   }
 };
+

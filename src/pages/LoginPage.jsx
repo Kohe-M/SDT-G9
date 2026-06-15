@@ -1,3 +1,4 @@
+console.log("APIキーの確認:", import.meta.env.VITE_FIREBASE_API_KEY);
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { registerUser, loginUser } from "../services/authService";
@@ -87,3 +88,4 @@ export default function LoginPage() {
     </div>
   );
 }
+
