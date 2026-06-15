@@ -18,20 +18,26 @@ export default function ProfilePage() {
   // 画面が表示されたときに、ログイン状態とプロフィール情報を読み込む
   useEffect(() => {
     const unsubscribe = observeAuthState(async (user) => {
-      if (user) {
-        setCurrentUser(user);
-        // すでに保存されているプロフィールがあれば取得してセットする
-        const profileData = await getUserProfile(user.uid);
-        if (profileData) {
-          setName(profileData.name || "");
-          setMotivation(profileData.motivation || "普通");
-          setStudyStyle(profileData.studyStyle || "静かに受けたい");
+      try {
+        if (user) {
+          setCurrentUser(user);
+          // すでに保存されているプロフィールがあれば取得してセットする
+          const profileData = await getUserProfile(user.uid);
+          if (profileData) {
+            setName(profileData.name || "");
+            setMotivation(profileData.motivation || "普通");
+            setStudyStyle(profileData.studyStyle || "静かに受けたい");
+          }
+        } else {
+          // ログインしていなければログイン画面に弾く
+          navigate("/login");
         }
-      } else {
-        // ログインしていなければログイン画面に弾く
-        navigate("/login");
+      } catch (err) {
+        console.error("プロフィール取得エラー:", err);
+        setMessage("プロフィールの読み込みに失敗しました。");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     // コンポーネントが消えるときに監視を解除
