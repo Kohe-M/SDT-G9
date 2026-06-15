@@ -8,20 +8,27 @@ import MatchingPage from "../pages/MatchingPage";
 import ProfilePage from "../pages/ProfilePage";
 import TimetablePage from "../pages/TimetablePage";
 
+// ルート定義をRouterから分離し、テストでMemoryRouterと組み合わせられるようにする
+export function AppRoutesContent() {
+  return (
+    <Routes>
+      <Route element={<Layout />}>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/timetable" element={<TimetablePage />} />
+        <Route path="/classes/search" element={<ClassSearchPage />} />
+        <Route path="/matching/:classCode" element={<MatchingPage />} />
+        <Route path="/chat/:groupId" element={<ChatPage />} />
+      </Route>
+    </Routes>
+  );
+}
+
 export default function AppRoutes() {
   return (
     <HashRouter>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/timetable" element={<TimetablePage />} />
-          <Route path="/classes/search" element={<ClassSearchPage />} />
-          <Route path="/matching/:classCode" element={<MatchingPage />} />
-          <Route path="/chat/:groupId" element={<ChatPage />} />
-        </Route>
-      </Routes>
+      <AppRoutesContent />
     </HashRouter>
   );
 }
