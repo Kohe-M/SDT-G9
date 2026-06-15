@@ -15,7 +15,13 @@ export function getClassByCode(code) {
 // 各エントリは {code, name, day, period, syllabusUrl} の形式
 export function getMyClasses() {
   const raw = localStorage.getItem(TIMETABLE_KEY);
-  return raw ? JSON.parse(raw) : [];
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw);
+  } catch {
+    localStorage.removeItem(TIMETABLE_KEY);
+    return [];
+  }
 }
 
 export function addClassToTimetable(entry) {

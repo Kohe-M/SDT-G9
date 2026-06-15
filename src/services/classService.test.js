@@ -79,6 +79,12 @@ describe("getMyClasses", () => {
   test("localStorage未登録の場合は空配列を返す", () => {
     expect(getMyClasses()).toEqual([]);
   });
+
+  test("localStorage が破損JSON の場合は空配列を返し、キーを削除する", () => {
+    localStorage.setItem("timetable_entries", "not-valid-json{{{");
+    expect(getMyClasses()).toEqual([]);
+    expect(localStorage.getItem("timetable_entries")).toBeNull();
+  });
 });
 
 describe("addClassToTimetable", () => {
