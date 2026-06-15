@@ -5,6 +5,7 @@ import {
   getClassByCode,
   addClassToTimetable as addToStorage,
 } from "../services/classService";
+import { C } from "../components/DesignSystem";
 
 const DAYS = ["月", "火", "水", "木", "金"];
 const PERIODS = [
@@ -14,21 +15,6 @@ const PERIODS = [
   { n: 4, start: "14:55", end: "16:30" },
   { n: 5, start: "16:40", end: "18:15" },
 ];
-
-const C = {
-  bg: "#F4F1EA",
-  card: "#FCFBF8",
-  line: "#E6E0D5",
-  ink: "#3D3A33",
-  inkSoft: "#6F6A5F",
-  inkFaint: "#A39D90",
-  mauve: "#B98AAE",
-  mauveDeep: "#9C6A8E",
-  mauveSoft: "#F1E7EF",
-  sage: "#8FA98C",
-  sageDeep: "#6E8C6B",
-  sageSoft: "#E8EEE6",
-};
 
 function buildMap(classes) {
   const map = {};

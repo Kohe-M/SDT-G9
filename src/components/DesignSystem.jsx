@@ -1,4 +1,4 @@
-// 共有デザインシステム: カラー定数・Icon・Mascot・Tag
+// 共有デザインシステム: カラー定数・Icon・Mascot・Tag・UI共通コンポーネント
 // B/C/D担当の各ページから import して使う
 
 export const C = {
@@ -14,7 +14,11 @@ export const C = {
   sage: "#8FA98C",
   sageDeep: "#6E8C6B",
   sageSoft: "#E8EEE6",
+  error: "#C0392B",
+  errorSoft: "#FDEDEC",
 };
+
+// ─── Icon ───────────────────────────────────────────────────────────────────
 
 export function Icon({ name, size = 24, color = "currentColor", strokeWidth = 1.9 }) {
   const p = { fill: "none", stroke: color, strokeWidth, strokeLinecap: "round", strokeLinejoin: "round" };
@@ -47,6 +51,8 @@ export function Icon({ name, size = 24, color = "currentColor", strokeWidth = 1.
   );
 }
 
+// ─── Mascot ──────────────────────────────────────────────────────────────────
+
 export function Mascot({ size = 96, tone = "mauve", mood = "calm", style = {} }) {
   const body = tone === "sage" ? C.sage : C.mauve;
   const cheek = tone === "sage" ? C.sageDeep : C.mauveDeep;
@@ -68,6 +74,8 @@ export function Mascot({ size = 96, tone = "mauve", mood = "calm", style = {} })
   );
 }
 
+// ─── Tag ─────────────────────────────────────────────────────────────────────
+
 export function Tag({ children, tone = "neutral", style = {} }) {
   const map = {
     neutral: { bg: "rgba(61,58,51,0.06)", fg: C.inkSoft },
@@ -83,5 +91,277 @@ export function Tag({ children, tone = "neutral", style = {} }) {
     }}>
       {children}
     </span>
+  );
+}
+
+// ─── Button ──────────────────────────────────────────────────────────────────
+
+const BUTTON_STYLES = {
+  primary: {
+    background: C.mauve,
+    color: "#fff",
+    border: "none",
+    boxShadow: `0 6px 18px -8px ${C.mauve}`,
+  },
+  secondary: {
+    background: C.mauveSoft,
+    color: C.mauveDeep,
+    border: `1.5px solid ${C.line}`,
+    boxShadow: "none",
+  },
+  ghost: {
+    background: "transparent",
+    color: C.mauveDeep,
+    border: "none",
+    boxShadow: "none",
+    textDecoration: "underline",
+    textUnderlineOffset: 3,
+  },
+  danger: {
+    background: C.error,
+    color: "#fff",
+    border: "none",
+    boxShadow: "none",
+  },
+};
+
+export function Button({
+  children,
+  variant = "primary",
+  disabled = false,
+  loading = false,
+  fullWidth = false,
+  size = "md",
+  style = {},
+  ...props
+}) {
+  const base = BUTTON_STYLES[variant] || BUTTON_STYLES.primary;
+  const pad = size === "sm" ? "8px 16px" : size === "lg" ? "15px 24px" : "12px 20px";
+  const fz = size === "sm" ? 13 : size === "lg" ? 16 : 14.5;
+  return (
+    <button
+      disabled={disabled || loading}
+      {...props}
+      style={{
+        appearance: "none",
+        cursor: disabled || loading ? "not-allowed" : "pointer",
+        borderRadius: 14,
+        padding: pad,
+        fontSize: fz,
+        fontWeight: 700,
+        letterSpacing: 0.3,
+        fontFamily: "inherit",
+        width: fullWidth ? "100%" : undefined,
+        opacity: disabled ? 0.55 : 1,
+        transition: "opacity .15s ease",
+        ...base,
+        ...style,
+      }}
+    >
+      {loading ? "処理中..." : children}
+    </button>
+  );
+}
+
+// ─── Card ────────────────────────────────────────────────────────────────────
+
+export function Card({ children, style = {}, ...props }) {
+  return (
+    <div
+      {...props}
+      style={{
+        background: C.card,
+        border: `1.5px solid ${C.line}`,
+        borderRadius: 22,
+        padding: "24px 20px",
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ─── TextField ───────────────────────────────────────────────────────────────
+
+export function TextField({ label, error, style = {}, inputStyle = {}, ...inputProps }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6, ...style }}>
+      {label && (
+        <label style={{ fontSize: 13, fontWeight: 600, color: C.inkSoft }}>
+          {label}
+        </label>
+      )}
+      <input
+        {...inputProps}
+        style={{
+          width: "100%",
+          border: `1.5px solid ${error ? C.error : C.line}`,
+          borderRadius: 12,
+          padding: "12px 14px",
+          fontSize: 15,
+          color: C.ink,
+          background: C.bg,
+          outline: "none",
+          transition: "border-color .15s ease",
+          ...inputStyle,
+        }}
+      />
+      {error && (
+        <span style={{ fontSize: 12.5, color: C.error }}>{error}</span>
+      )}
+    </div>
+  );
+}
+
+// ─── SelectField ─────────────────────────────────────────────────────────────
+
+export function SelectField({ label, children, style = {}, selectStyle = {}, ...selectProps }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6, ...style }}>
+      {label && (
+        <label style={{ fontSize: 13, fontWeight: 600, color: C.inkSoft }}>
+          {label}
+        </label>
+      )}
+      <select
+        {...selectProps}
+        style={{
+          width: "100%",
+          border: `1.5px solid ${C.line}`,
+          borderRadius: 12,
+          padding: "12px 14px",
+          fontSize: 15,
+          color: C.ink,
+          background: C.bg,
+          outline: "none",
+          appearance: "none",
+          backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23A39D90' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")`,
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "right 12px center",
+          paddingRight: 38,
+          cursor: "pointer",
+          ...selectStyle,
+        }}
+      >
+        {children}
+      </select>
+    </div>
+  );
+}
+
+// ─── PageShell ───────────────────────────────────────────────────────────────
+
+export function PageShell({ children, centered = false, style = {} }) {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        background: C.bg,
+        padding: centered ? "32px 20px 100px" : "20px 16px 100px",
+        display: centered ? "flex" : undefined,
+        flexDirection: centered ? "column" : undefined,
+        alignItems: centered ? "center" : undefined,
+        justifyContent: centered ? "center" : undefined,
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ─── PageHeader ──────────────────────────────────────────────────────────────
+
+export function PageHeader({ title, subtitle, style = {} }) {
+  return (
+    <div style={{ marginBottom: 20, ...style }}>
+      <div style={{ fontSize: 22, fontWeight: 700, color: C.ink, letterSpacing: 0.4, lineHeight: 1.2 }}>
+        {title}
+      </div>
+      {subtitle && (
+        <div style={{ fontSize: 13, color: C.inkFaint, marginTop: 5, fontWeight: 500 }}>
+          {subtitle}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── ErrorMessage ────────────────────────────────────────────────────────────
+
+export function ErrorMessage({ message, style = {} }) {
+  if (!message) return null;
+  return (
+    <div style={{
+      background: C.errorSoft,
+      border: `1.5px solid ${C.error}33`,
+      borderRadius: 12,
+      padding: "10px 14px",
+      fontSize: 13.5,
+      color: C.error,
+      fontWeight: 500,
+      marginBottom: 14,
+      ...style,
+    }}>
+      {message}
+    </div>
+  );
+}
+
+// ─── SuccessMessage ──────────────────────────────────────────────────────────
+
+export function SuccessMessage({ message, style = {} }) {
+  if (!message) return null;
+  return (
+    <div style={{
+      background: C.sageSoft,
+      border: `1.5px solid ${C.sage}55`,
+      borderRadius: 12,
+      padding: "10px 14px",
+      fontSize: 13.5,
+      color: C.sageDeep,
+      fontWeight: 600,
+      marginBottom: 14,
+      ...style,
+    }}>
+      {message}
+    </div>
+  );
+}
+
+// ─── Toast ───────────────────────────────────────────────────────────────────
+
+export function Toast({ text, error = false }) {
+  if (!text) return null;
+  return (
+    <div style={{
+      position: "fixed", left: 0, right: 0, bottom: 40,
+      display: "flex", justifyContent: "center",
+      pointerEvents: "none", zIndex: 100,
+    }}>
+      <div style={{
+        background: error ? "rgba(192,57,43,0.92)" : "rgba(61,58,51,0.92)",
+        color: "#FCFBF8",
+        fontSize: 13, fontWeight: 600, padding: "10px 18px", borderRadius: 999,
+        display: "inline-flex", alignItems: "center", gap: 7,
+        boxShadow: "0 12px 30px -12px rgba(0,0,0,0.5)",
+      }}>
+        {error ? "✕" : "✓"} {text}
+      </div>
+    </div>
+  );
+}
+
+// ─── Divider ─────────────────────────────────────────────────────────────────
+
+export function Divider({ style = {} }) {
+  return (
+    <hr style={{
+      border: "none",
+      borderTop: `1px solid ${C.line}`,
+      margin: "20px 0",
+      ...style,
+    }} />
   );
 }

@@ -4,26 +4,36 @@ import { observeAuthState, logoutUser } from "../services/authService";
 import { saveUserProfile, getUserProfile } from "../services/userService";
 import { validateDisplayName } from "../utils/validation";
 import { buildUserProfileData } from "../utils/dataBuilders";
+import {
+  Button,
+  Card,
+  TextField,
+  SelectField,
+  PageShell,
+  PageHeader,
+  ErrorMessage,
+  SuccessMessage,
+  Divider,
+  C,
+} from "../components/DesignSystem";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState(null);
-  
-  // プロフィールの入力項目
-  const [name, setName] = useState("");
+
+  const [name, setName]             = useState("");
   const [motivation, setMotivation] = useState("普通");
   const [studyStyle, setStudyStyle] = useState("静かに受けたい");
-  
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(true);
 
-  // 画面が表示されたときに、ログイン状態とプロフィール情報を読み込む
+  const [message, setMessage]     = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [loading, setLoading]     = useState(true);
+
   useEffect(() => {
     const unsubscribe = observeAuthState(async (user) => {
       if (user) {
         setCurrentUser(user);
         try {
-          // すでに保存されているプロフィールがあれば取得してセットする
           const profileData = await getUserProfile(user.uid);
           if (profileData) {
             setName(profileData.name || profileData.displayName || "");
@@ -37,32 +47,31 @@ export default function ProfilePage() {
           setLoading(false);
         }
       } else {
-        // ログインしていなければログイン画面に弾く
         navigate("/login");
         setLoading(false);
       }
     });
 
-    // コンポーネントが消えるときに監視を解除
     return () => unsubscribe();
   }, [navigate]);
 
   const handleSave = async (e) => {
     e.preventDefault();
     setMessage("");
-    
+    setSaveError("");
+
     if (!currentUser) return;
 
     const nameCheck = validateDisplayName(name);
     if (!nameCheck.ok) {
-      alert(nameCheck.message);
+      setSaveError(nameCheck.message);
       return;
     }
 
-    const cleanData = buildUserProfileData({ 
-      uid: currentUser.uid, 
-      displayName: name, 
-      email: currentUser.email || ""
+    const cleanData = buildUserProfileData({
+      uid: currentUser.uid,
+      displayName: name,
+      email: currentUser.email || "",
     });
 
     try {
@@ -70,12 +79,12 @@ export default function ProfilePage() {
         ...cleanData,
         name: cleanData.displayName,
         motivation,
-        studyStyle
+        studyStyle,
       });
       setMessage("プロフィールを保存しました！");
     } catch (err) {
       console.error(err);
-      setMessage("エラーが発生しました。");
+      setSaveError("エラーが発生しました。");
     }
   };
 
@@ -84,71 +93,64 @@ export default function ProfilePage() {
     navigate("/login");
   };
 
-  if (loading) return <p style={{ textAlign: "center", marginTop: "50px" }}>読み込み中...</p>;
+  if (loading) {
+    return (
+      <PageShell centered>
+        <p style={{ color: C.inkFaint, fontSize: 14 }}>読み込み中...</p>
+      </PageShell>
+    );
+  }
 
   return (
-    <div style={{ maxWidth: "500px", margin: "50px auto", padding: "20px", border: "1px solid #ccc", borderRadius: "8px" }}>
-      <h2>プロフィール設定</h2>
-      
-      {message && <p style={{ color: "green", fontWeight: "bold" }}>{message}</p>}
+    <PageShell style={{ padding: "20px 16px 100px" }}>
+      <PageHeader title="プロフィール設定" />
 
-      <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-        <div>
-          <label>ユーザー名 (ニックネーム)</label>
-          <input 
-            type="text" 
-            value={name} 
-            onChange={(e) => setName(e.target.value)} 
-            required 
+      <Card>
+        <SuccessMessage message={message} />
+        <ErrorMessage message={saveError} />
+
+        <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <TextField
+            label="ユーザー名（ニックネーム）"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
             placeholder="例: ひろ"
-            style={{ width: "100%", padding: "8px", marginTop: "5px" }}
           />
-        </div>
 
-        <div>
-          <label>授業へのモチベーション</label>
-          <select 
-            value={motivation} 
+          <SelectField
+            label="授業へのモチベーション"
+            value={motivation}
             onChange={(e) => setMotivation(e.target.value)}
-            style={{ width: "100%", padding: "8px", marginTop: "5px" }}
           >
             <option value="高い">高い（最前列でしっかり聞く、A評価狙い）</option>
             <option value="普通">普通（遅刻せず出席する、適度にメモ）</option>
             <option value="単位が取れればよい">単位が取れればよい（テスト・課題重視）</option>
-          </select>
-        </div>
+          </SelectField>
 
-        <div>
-          <label>授業の受け方希望</label>
-          <select 
-            value={studyStyle} 
+          <SelectField
+            label="授業の受け方希望"
+            value={studyStyle}
             onChange={(e) => setStudyStyle(e.target.value)}
-            style={{ width: "100%", padding: "8px", marginTop: "5px" }}
           >
             <option value="静かに受けたい">静かに受けたい（私語は控えめ）</option>
             <option value="話しながら受けたい">話しながら受けたい（わからない所をその場で相談）</option>
             <option value="授業後に相談したい">授業後に相談したい（終わってから情報交換）</option>
             <option value="課題も一緒にやりたい">課題も一緒にやりたい（外で集まるのも歓迎）</option>
-          </select>
-        </div>
+          </SelectField>
 
-        <button 
-          type="submit" 
-          style={{ padding: "10px", backgroundColor: "#28a745", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
-        >
-          変更を保存する
-        </button>
-      </form>
+          <Button type="submit" fullWidth style={{ marginTop: 4 }}>
+            変更を保存する
+          </Button>
+        </form>
 
-      <hr style={{ margin: "30px 0", borderColor: "#eee" }} />
+        <Divider />
 
-      <button 
-        onClick={handleLogout} 
-        style={{ width: "100%", padding: "10px", backgroundColor: "#dc3545", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
-      >
-        ログアウト
-      </button>
-    </div>
+        <Button variant="danger" fullWidth onClick={handleLogout}>
+          ログアウト
+        </Button>
+      </Card>
+    </PageShell>
   );
 }
-

@@ -1,29 +1,27 @@
-import { NavLink } from "react-router-dom";
-import { ROUTES } from "../constants/routes";
-
-const navItems = [
-  { label: "ホーム", to: ROUTES.HOME },
-  { label: "ログイン", to: ROUTES.LOGIN },
-  { label: "プロフィール", to: ROUTES.PROFILE },
-  { label: "時間割", to: ROUTES.TIMETABLE },
-  { label: "マッチング確認", to: ROUTES.MATCHING_TEST },
-  { label: "チャット確認", to: ROUTES.CHAT_TEST },
-];
+import { C, Icon } from "./DesignSystem";
 
 export default function Header() {
   return (
-    <header>
-      <nav aria-label="メインナビゲーション">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) => (isActive ? "active" : undefined)}
-          >
-            {item.label}
-          </NavLink>
-        ))}
-      </nav>
-    </header>
+    <div
+      role="banner"
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 40,
+        height: 50,
+        display: "flex",
+        alignItems: "center",
+        padding: "0 18px",
+        background: "rgba(252,251,248,0.92)",
+        backdropFilter: "blur(14px) saturate(180%)",
+        WebkitBackdropFilter: "blur(14px) saturate(180%)",
+        borderBottom: `1px solid ${C.line}`,
+      }}
+    >
+      <Icon name="sparkle" size={17} color={C.mauve} />
+      <span style={{ marginLeft: 8, fontSize: 16, fontWeight: 700, color: C.ink, letterSpacing: 0.5 }}>
+        ぼっちゼロ
+      </span>
+    </div>
   );
 }
