@@ -45,11 +45,11 @@ describe("ルーティング — 各パスが正しい画面を表示する", ()
     expect(screen.getByText(/メールアドレス/)).toBeTruthy();
   });
 
-  test("/profile → プロフィール画面が描画される（未認証時はログインへリダイレクト）", () => {
-    // observeAuthStateのモックがnullを返すため、未認証→/loginへリダイレクトする
+  test("/profile → 未認証時はログイン画面へリダイレクトされる", () => {
+    // observeAuthState のモックが null(未認証)を返すため /login へリダイレクトする
     renderAt("/profile");
-    // ログイン画面またはローディング状態のどちらかが表示される
-    expect(document.body.textContent.length).toBeGreaterThan(0);
+    // ログイン画面の入力欄が表示されることを確認
+    expect(screen.getByText(/メールアドレス/)).toBeTruthy();
   });
 
   test("/timetable → 時間割画面が描画される", () => {

@@ -17,7 +17,12 @@ export function getMyClasses() {
   const raw = localStorage.getItem(TIMETABLE_KEY);
   if (!raw) return [];
   try {
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      localStorage.removeItem(TIMETABLE_KEY);
+      return [];
+    }
+    return parsed;
   } catch {
     localStorage.removeItem(TIMETABLE_KEY);
     return [];

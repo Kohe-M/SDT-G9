@@ -85,6 +85,24 @@ describe("getMyClasses", () => {
     expect(getMyClasses()).toEqual([]);
     expect(localStorage.getItem("timetable_entries")).toBeNull();
   });
+
+  test("localStorage がオブジェクトJSON ({}) の場合は空配列を返し、キーを削除する", () => {
+    localStorage.setItem("timetable_entries", JSON.stringify({}));
+    expect(getMyClasses()).toEqual([]);
+    expect(localStorage.getItem("timetable_entries")).toBeNull();
+  });
+
+  test("localStorage が文字列JSON の場合は空配列を返し、キーを削除する", () => {
+    localStorage.setItem("timetable_entries", JSON.stringify("hello"));
+    expect(getMyClasses()).toEqual([]);
+    expect(localStorage.getItem("timetable_entries")).toBeNull();
+  });
+
+  test("localStorage が数値JSON の場合は空配列を返し、キーを削除する", () => {
+    localStorage.setItem("timetable_entries", JSON.stringify(42));
+    expect(getMyClasses()).toEqual([]);
+    expect(localStorage.getItem("timetable_entries")).toBeNull();
+  });
 });
 
 describe("addClassToTimetable", () => {

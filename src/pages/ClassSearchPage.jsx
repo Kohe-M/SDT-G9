@@ -25,7 +25,7 @@ export default function ClassSearchPage() {
   const [registering, setRegistering] = useState(null);
   const [selectedDay, setSelectedDay] = useState(0);
   const [selectedPeriod, setSelectedPeriod] = useState(1);
-  const [toast, setToast] = useState(null);
+  const [toast, setToast] = useState(null); // { text, error }
 
   function handleSearch(e) {
     e.preventDefault();
@@ -36,7 +36,7 @@ export default function ClassSearchPage() {
 
   function handleRegister() {
     if (!registering) return;
-    addClassToTimetable({
+    const result = addClassToTimetable({
       code: registering.code,
       name: registering.name,
       room: registering.room || "",
@@ -44,13 +44,21 @@ export default function ClassSearchPage() {
       period: selectedPeriod,
       syllabusUrl: registering.syllabusUrl || "",
     });
+    if (result === "duplicate_code") {
+      showToast(`「${registering.name}」はすでに時間割に登録されています`, true);
+      return;
+    }
+    if (result === "duplicate_slot") {
+      showToast(`${DAYS[selectedDay]}曜${selectedPeriod}限にはすでに授業が登録されています`, true);
+      return;
+    }
     showToast(`「${registering.name}」を${DAYS[selectedDay]}曜${selectedPeriod}限に追加しました`);
     setRegistering(null);
   }
 
-  function showToast(text) {
-    setToast(text);
-    setTimeout(() => setToast(null), 2200);
+  function showToast(text, error = false) {
+    setToast({ text, error });
+    setTimeout(() => setToast(null), 2600);
   }
 
   return (
@@ -219,12 +227,13 @@ export default function ClassSearchPage() {
           pointerEvents: "none", zIndex: 100,
         }}>
           <div style={{
-            background: "rgba(61,58,51,0.92)", color: "#FCFBF8",
+            background: toast.error ? "rgba(180,50,50,0.92)" : "rgba(61,58,51,0.92)",
+            color: "#FCFBF8",
             fontSize: 13, fontWeight: 600, padding: "10px 18px", borderRadius: 999,
             display: "inline-flex", alignItems: "center", gap: 7,
             boxShadow: "0 12px 30px -12px rgba(0,0,0,0.5)",
           }}>
-            ✓ {toast}
+            {toast.error ? "✕" : "✓"} {toast.text}
           </div>
         </div>
       )}
