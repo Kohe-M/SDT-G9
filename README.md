@@ -18,13 +18,18 @@ https://kohe-m.github.io/SDT-G9/
 - react-router-dom
 - Firebase Authentication
 - Cloud Firestore
+- GitHub Actions
+- Vitest
 
 ## セットアップ方法
 
 ```bash
 npm install
+npm test
 npm run dev
 ```
+
+Pull requests to `main` are verified by GitHub Actions (`CI / ci-build`), which runs the unit tests and build.
 
 開発サーバー起動後、以下にアクセスできます。
 
@@ -38,11 +43,14 @@ http://localhost:5173/matching/TEST101
 http://localhost:5173/chat/test-group
 ```
 
-ビルド確認は以下です。
+テストとビルドの確認は以下です。
 
 ```bash
+npm test
 npm run build
 ```
+
+テスト方針の詳細は [docs/test-plan.md](docs/test-plan.md) を参照してください。
 
 ## 環境変数
 
@@ -59,13 +67,45 @@ VITE_FIREBASE_APP_ID=
 
 `.env.local` はGitHubに上げないでください。実際のFirebase設定値はGit管理しません。
 
+## Firebase運用メモ
+
+### Firebase Console側の設定
+
+A担当がFirebase Consoleで以下を設定済みです。
+
+- Firebase AuthenticationでEmail/Passwordを有効化済み
+- Cloud Firestore Databaseを作成済み
+- Firestore Rulesはログイン済みユーザーによる利用を前提に設定
+
+GitHub Pagesへの公開後、Firebase Authenticationでドメインエラーが出た場合は、Firebase ConsoleのAuthenticationにあるAuthorized domainsへ `kohe-m.github.io` を追加してください。
+
+### 各自のローカル設定
+
+各自で `.env.example` をコピーし、 `.env.local` を作成してください。Firebaseの設定値は `.env.local` に記載します。
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+**`.env.local` はGit管理せず、GitHubへ絶対に上げないでください。**
+
+### Firebaseを使うコード
+
+各ファイルで `initializeApp` を書かず、既存の `src/firebase.js` で初期化済みの `auth` と `db` をimportして使用してください。
+
+```js
+import { auth, db } from "../firebase";
+```
+
+importの相対パスは、使用するファイルの場所に合わせて調整してください。
+
 ## Git運用ルール
 
 - `main` は動作する状態を保つ
 - 作業は担当ごとにブランチを分ける
 - `node_modules/`, `dist/`, `.env`, `.env.local` はコミットしない
 - 作業前に `npm install` を実行する
-- Pull Request前に `npm run build` を実行する
+- Pull Request前に `npm test`、`npm run build` の順で実行する
 
 ## 担当範囲
 
