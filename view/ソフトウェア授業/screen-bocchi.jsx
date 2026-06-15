@@ -18,34 +18,123 @@ const BOCCHI_COPY = {
   },
 };
 
-function CurrentClassCard() {
+// 今日のコマ。current = 進行中の授業 / next = 次の授業。
+// マッチは「開始30分前」から受付。次の授業が30分前に入ると
+// いま授業中カードは消えて、次の授業へ受付がスライドする。
+const SCHEDULE = {
+  current: {
+    period: '2限', time: '10:40–12:10',
+    title: 'ミクロ経済学 Ⅰ', room: '3号館 302', teacher: '佐藤 准教授',
+  },
+  next: {
+    period: '3限', time: '13:00–14:30', start: '13:00',
+    title: '統計学入門', room: '6号館 514', teacher: '田村 教授',
+    openIn: 42,   // 受付開始まで（分）※デモ用
+    startIn: 28,  // 開始まで（分）※30分前デモ用
+  },
+};
+
+function ClassCard({ data, kind }) {
+  // kind: 'now' 進行中・マッチ可 / 'next-open' 次の授業・30分前・マッチ可
+  const isNow = kind === 'now';
+  const dot = isNow ? C.mauve : C.sage;
+  const dotSoft = isNow ? C.mauveSoft : C.sageSoft;
+  const dotDeep = isNow ? C.mauveDeep : C.sageDeep;
+
   return (
     <div style={{
       background: C.card, borderRadius: 22, padding: '16px 18px',
-      border: `1px solid ${C.line}`, boxShadow: '0 1px 0 rgba(61,58,51,0.02)',
+      border: `1px solid ${isNow ? C.mauveSoft : C.sageSoft}`,
+      boxShadow: '0 1px 0 rgba(61,58,51,0.02)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 11 }}>
         <span style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
-          fontSize: 12, fontWeight: 700, color: C.mauveDeep,
-          background: C.mauveSoft, padding: '4px 9px', borderRadius: 999,
+          fontSize: 12, fontWeight: 700, color: dotDeep,
+          background: dotSoft, padding: '4px 9px', borderRadius: 999, whiteSpace: 'nowrap',
         }}>
-          <span style={{ width: 6, height: 6, borderRadius: 999, background: C.mauve, boxShadow: `0 0 0 3px ${C.mauveSoft}` }} />
-          いま授業中
+          <span style={{ width: 6, height: 6, borderRadius: 999, background: dot, boxShadow: `0 0 0 3px ${dotSoft}` }} />
+          {isNow ? 'いま授業中' : '次の授業・受付中'}
         </span>
-        <span style={{ fontSize: 12, color: C.inkFaint, marginLeft: 'auto', fontWeight: 500 }}>2限 ・ 10:40–12:10</span>
+        <span style={{ fontSize: 12, color: C.inkFaint, marginLeft: 'auto', fontWeight: 500, whiteSpace: 'nowrap' }}>{data.period} ・ {data.time}</span>
       </div>
       <div style={{ fontFamily: HEAD, fontSize: 22, fontWeight: 700, letterSpacing: 0.2, color: C.ink, lineHeight: 1.3 }}>
-        ミクロ経済学 Ⅰ
+        {data.title}
       </div>
       <div style={{ display: 'flex', gap: 14, marginTop: 9, color: C.inkSoft, fontSize: 13, fontWeight: 500 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-          <Icon name="pin" size={15} color={C.inkFaint} /> 3号館 302
+          <Icon name="pin" size={15} color={C.inkFaint} /> {data.room}
         </span>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-          <Icon name="person" size={15} color={C.inkFaint} /> 佐藤 准教授
+          <Icon name="person" size={15} color={C.inkFaint} /> {data.teacher}
         </span>
       </div>
+      {kind === 'next-open' && (
+        <div style={{
+          marginTop: 12, paddingTop: 11, borderTop: `1px dashed ${C.sageSoft}`,
+          display: 'flex', alignItems: 'center', gap: 6,
+          fontSize: 12, color: C.sageDeep, fontWeight: 600,
+        }}>
+          <Icon name="sparkle" size={13} color={C.sageDeep} />
+          {data.start}開始まで あと{data.startIn}分 ・ いまマッチできます
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 受付前の「次の授業」は、主役のカードを邪魔しない細い1行に。
+function NextRow({ data }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 11,
+      background: C.card, borderRadius: 15, padding: '10px 13px',
+      border: `1px solid ${C.line}`,
+    }}>
+      <div style={{
+        width: 30, height: 30, borderRadius: 9, background: 'rgba(61,58,51,0.05)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+      }}>
+        <Icon name="clock" size={16} color={C.inkFaint} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 10.5, fontWeight: 700, color: C.inkFaint, letterSpacing: 0.4 }}>
+          次の授業 ・ {data.period} {data.start}
+        </div>
+        <div style={{
+          display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 1,
+          whiteSpace: 'nowrap', overflow: 'hidden',
+        }}>
+          <span style={{ fontSize: 14.5, fontWeight: 700, color: C.inkSoft, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {data.title}
+          </span>
+          <span style={{
+            flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 3,
+            fontSize: 12, fontWeight: 500, color: C.inkFaint,
+          }}>
+            <Icon name="pin" size={13} color={C.inkFaint} /> {data.room}
+          </span>
+        </div>
+      </div>
+      <span style={{
+        flexShrink: 0, fontSize: 11, fontWeight: 700, color: C.inkSoft,
+        background: 'rgba(61,58,51,0.05)', padding: '5px 10px', borderRadius: 999, whiteSpace: 'nowrap',
+      }}>
+        あと{data.openIn}分で受付
+      </span>
+    </div>
+  );
+}
+
+function ClassStack({ phase }) {
+  // phase: 'during' 授業中（通常）/ 'pre' 次の授業30分前
+  if (phase === 'pre') {
+    return <ClassCard data={SCHEDULE.next} kind="next-open" />;
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <ClassCard data={SCHEDULE.current} kind="now" />
+      <NextRow data={SCHEDULE.next} />
     </div>
   );
 }
@@ -108,9 +197,10 @@ function BocchiButton({ tone, label, sub, count, showCount, onPress }) {
   );
 }
 
-function BocchiScreen({ copyTone = 'humor', showCount = true, onOpenChat }) {
+function BocchiScreen({ copyTone = 'humor', showCount = true, phase = 'during', onOpenChat }) {
   const [match, setMatch] = React.useState(null); // null | {phase, tone}
   const copy = BOCCHI_COPY[copyTone] || BOCCHI_COPY.humor;
+  const activeClass = phase === 'pre' ? SCHEDULE.next : SCHEDULE.current;
 
   const start = (tone) => {
     setMatch({ phase: 'searching', tone });
@@ -119,7 +209,7 @@ function BocchiScreen({ copyTone = 'humor', showCount = true, onOpenChat }) {
 
   return (
     <div style={{ padding: '6px 18px 20px', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
-      <CurrentClassCard />
+      <ClassStack phase={phase} />
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '26px 0 8px' }}>
         <div style={{ textAlign: 'center', marginBottom: 22 }}>
@@ -146,13 +236,13 @@ function BocchiScreen({ copyTone = 'humor', showCount = true, onOpenChat }) {
         </div>
       </div>
 
-      {match && <MatchOverlay state={match} onClose={() => setMatch(null)} onOpenChat={onOpenChat} />}
+      {match && <MatchOverlay state={match} subject={activeClass.title} onClose={() => setMatch(null)} onOpenChat={onOpenChat} />}
     </div>
   );
 }
 
 // ───────────────────────── Matching overlay ─────────────────────────
-function MatchOverlay({ state, onClose, onOpenChat }) {
+function MatchOverlay({ state, subject = 'ミクロ経済学 Ⅰ', onClose, onOpenChat }) {
   const tone = state.tone;
   const mauve = tone === 'mauve';
   const accent = mauve ? C.mauve : C.sage;
@@ -193,7 +283,7 @@ function MatchOverlay({ state, onClose, onOpenChat }) {
               <span style={{ animation: 'om-dots 1.4s infinite .2s' }}>・</span>
               <span style={{ animation: 'om-dots 1.4s infinite .4s' }}>・</span>
             </div>
-            <div style={{ fontSize: 12.5, color: C.inkSoft, marginTop: 7 }}>ミクロ経済学Ⅰ で、同じ温度感の人を探し中</div>
+            <div style={{ fontSize: 12.5, color: C.inkSoft, marginTop: 7 }}>{subject} で、同じ温度感の人を探し中</div>
             <button onClick={onClose} style={{
               marginTop: 22, appearance: 'none', border: 'none', background: 'transparent',
               color: C.inkFaint, fontSize: 13, fontWeight: 600, fontFamily: BODY, cursor: 'pointer',
@@ -228,7 +318,7 @@ function MatchOverlay({ state, onClose, onOpenChat }) {
             </div>
 
             <button onClick={() => {
-              if (onOpenChat) onOpenChat({ id: 'm-' + tone, title: 'ミクロ経済学Ⅰ のグループ', members: 3, tone });
+              if (onOpenChat) onOpenChat({ id: 'm-' + tone, title: subject + ' のグループ', members: 3, tone });
               else onClose();
             }} style={{
               width: '100%', marginTop: 16, appearance: 'none', border: 'none', cursor: 'pointer',

@@ -5,7 +5,8 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "calm": ["#8FA98C", "#6E8C6B", "#E8EEE6"],
   "headingFont": "Zen Maru Gothic",
   "copyTone": "humor",
-  "showCount": true
+  "showCount": true,
+  "phase": "during"
 }/*EDITMODE-END*/;
 
 const TABS = [
@@ -61,6 +62,7 @@ function App() {
           <Screen
             copyTone={t.copyTone}
             showCount={t.showCount}
+            phase={t.phase}
             onOpenChat={setChat}
             key={tab}
           />
@@ -113,6 +115,11 @@ function App() {
           onChange={(v) => setTweak('copyTone', v)} />
         <TweakToggle label="待ち人数を表示" value={t.showCount}
           onChange={(v) => setTweak('showCount', v)} />
+
+        <TweakSection label="時間帯（デモ）" />
+        <TweakRadio label="いまの状態" value={t.phase}
+          options={[{ value: 'during', label: '授業中' }, { value: 'pre', label: '次の30分前' }]}
+          onChange={(v) => setTweak('phase', v)} />
 
         <TweakSection label="画面" />
         <TweakButton label="ログイン画面を見る" onClick={() => { setChat(null); setAuthed(false); }} />

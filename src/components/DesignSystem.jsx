@@ -38,6 +38,7 @@ export function Icon({ name, size = 24, color = "currentColor", strokeWidth = 1.
     send: <g {...p}><path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7Z" /></g>,
     eye: <g {...p}><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></g>,
     eyeOff: <g {...p}><path d="M17.94 17.94A10 10 0 0 1 12 20c-6.4 0-10-8-10-8a18 18 0 0 1 5.06-5.94M9.9 4.24A9 9 0 0 1 12 4c6.4 0 10 8 10 8a18 18 0 0 1-2.16 3.19" /><path d="M1 1l22 22" /></g>,
+    clock: <g {...p}><circle cx="12" cy="12" r="8.2" /><path d="M12 7.6V12l3 1.8" /></g>,
   };
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" style={{ display: "block", flexShrink: 0 }}>
