@@ -1,7 +1,7 @@
-console.log("APIキーの確認:", import.meta.env.VITE_FIREBASE_API_KEY);
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { registerUser, loginUser } from "../services/authService";
+import { validateEmail, validatePassword } from "../utils/validation";
 
 export default function LoginPage() {
   const [isRegister, setIsRegister] = useState(false);
@@ -17,6 +17,20 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
+
+    const emailCheck = validateEmail(email);
+    if (!emailCheck.ok) {
+      setError(emailCheck.message);
+      setLoading(false);
+      return;
+    }
+
+    const passwordCheck = validatePassword(password);
+    if (!passwordCheck.ok) {
+      setError(passwordCheck.message);
+      setLoading(false);
+      return;
+    }
 
     try {
       if (isRegister) {

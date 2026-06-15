@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { observeAuthState, logoutUser } from "../services/authService";
 import { saveUserProfile, getUserProfile } from "../services/userService";
+import { validateDisplayName } from "../utils/validation";
+import { buildUserProfileData } from "../utils/dataBuilders";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -20,18 +22,25 @@ export default function ProfilePage() {
     const unsubscribe = observeAuthState(async (user) => {
       if (user) {
         setCurrentUser(user);
-        // すでに保存されているプロフィールがあれば取得してセットする
-        const profileData = await getUserProfile(user.uid);
-        if (profileData) {
-          setName(profileData.name || "");
-          setMotivation(profileData.motivation || "普通");
-          setStudyStyle(profileData.studyStyle || "静かに受けたい");
+        try {
+          // すでに保存されているプロフィールがあれば取得してセットする
+          const profileData = await getUserProfile(user.uid);
+          if (profileData) {
+            setName(profileData.name || profileData.displayName || "");
+            setMotivation(profileData.motivation || "普通");
+            setStudyStyle(profileData.studyStyle || "静かに受けたい");
+          }
+        } catch (error) {
+          console.error(error);
+          alert("プロフィールの取得に失敗しました");
+        } finally {
+          setLoading(false);
         }
       } else {
         // ログインしていなければログイン画面に弾く
         navigate("/login");
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     // コンポーネントが消えるときに監視を解除
@@ -44,9 +53,22 @@ export default function ProfilePage() {
     
     if (!currentUser) return;
 
+    const nameCheck = validateDisplayName(name);
+    if (!nameCheck.ok) {
+      alert(nameCheck.message);
+      return;
+    }
+
+    const cleanData = buildUserProfileData({ 
+      uid: currentUser.uid, 
+      displayName: name, 
+      email: currentUser.email || ""
+    });
+
     try {
       await saveUserProfile(currentUser.uid, {
-        name,
+        ...cleanData,
+        name: cleanData.displayName,
         motivation,
         studyStyle
       });
