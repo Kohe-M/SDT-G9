@@ -2,6 +2,10 @@
 // B/C/D担当の各ページから import して使う
 
 import { useId } from "react";
+import { createPortal } from "react-dom";
+
+export const HEAD = '"Zen Maru Gothic", "Zen Kaku Gothic New", sans-serif';
+export const BODY = '"Zen Kaku Gothic New", system-ui, sans-serif';
 
 export const C = {
   bg: "#F4F1EA",
@@ -372,6 +376,14 @@ export function Toast({ text, error = false }) {
       </div>
     </div>
   );
+}
+
+// ─── Portal ──────────────────────────────────────────────────────────────────
+
+export function Portal({ children }) {
+  const el = typeof document !== "undefined" ? document.getElementById("cm-overlay-root") : null;
+  if (!el) return children;
+  return createPortal(children, el);
 }
 
 // ─── Divider ─────────────────────────────────────────────────────────────────

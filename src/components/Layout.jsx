@@ -2,7 +2,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import Header from "./Header";
 import BottomTabBar from "./BottomTabBar";
 
-const HIDE_CHROME_ON = ["/login"];
+const HIDE_CHROME_ON = ["/login", "/chat/"];
 const HIDE_TABS_ON  = ["/login", "/chat/"];
 
 export default function Layout() {
