@@ -1,6 +1,8 @@
 // 共有デザインシステム: カラー定数・Icon・Mascot・Tag・UI共通コンポーネント
 // B/C/D担当の各ページから import して使う
 
+import { useId } from "react";
+
 export const C = {
   bg: "#F4F1EA",
   card: "#FCFBF8",
@@ -184,15 +186,18 @@ export function Card({ children, style = {}, ...props }) {
 
 // ─── TextField ───────────────────────────────────────────────────────────────
 
-export function TextField({ label, error, style = {}, inputStyle = {}, ...inputProps }) {
+export function TextField({ label, error, id: idProp, style = {}, inputStyle = {}, ...inputProps }) {
+  const autoId = useId();
+  const fieldId = idProp ?? autoId;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6, ...style }}>
       {label && (
-        <label style={{ fontSize: 13, fontWeight: 600, color: C.inkSoft }}>
+        <label htmlFor={fieldId} style={{ fontSize: 13, fontWeight: 600, color: C.inkSoft }}>
           {label}
         </label>
       )}
       <input
+        id={fieldId}
         {...inputProps}
         style={{
           width: "100%",
@@ -208,7 +213,7 @@ export function TextField({ label, error, style = {}, inputStyle = {}, ...inputP
         }}
       />
       {error && (
-        <span style={{ fontSize: 12.5, color: C.error }}>{error}</span>
+        <span role="alert" style={{ fontSize: 12.5, color: C.error }}>{error}</span>
       )}
     </div>
   );
@@ -216,15 +221,18 @@ export function TextField({ label, error, style = {}, inputStyle = {}, ...inputP
 
 // ─── SelectField ─────────────────────────────────────────────────────────────
 
-export function SelectField({ label, children, style = {}, selectStyle = {}, ...selectProps }) {
+export function SelectField({ label, children, id: idProp, style = {}, selectStyle = {}, ...selectProps }) {
+  const autoId = useId();
+  const fieldId = idProp ?? autoId;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6, ...style }}>
       {label && (
-        <label style={{ fontSize: 13, fontWeight: 600, color: C.inkSoft }}>
+        <label htmlFor={fieldId} style={{ fontSize: 13, fontWeight: 600, color: C.inkSoft }}>
           {label}
         </label>
       )}
       <select
+        id={fieldId}
         {...selectProps}
         style={{
           width: "100%",
@@ -273,16 +281,17 @@ export function PageShell({ children, centered = false, style = {} }) {
 
 // ─── PageHeader ──────────────────────────────────────────────────────────────
 
-export function PageHeader({ title, subtitle, style = {} }) {
+export function PageHeader({ title, subtitle, level = 1, style = {} }) {
+  const Tag = `h${Math.min(6, Math.max(1, level))}`;
   return (
     <div style={{ marginBottom: 20, ...style }}>
-      <div style={{ fontSize: 22, fontWeight: 700, color: C.ink, letterSpacing: 0.4, lineHeight: 1.2 }}>
+      <Tag style={{ fontSize: 22, fontWeight: 700, color: C.ink, letterSpacing: 0.4, lineHeight: 1.2, margin: 0 }}>
         {title}
-      </div>
+      </Tag>
       {subtitle && (
-        <div style={{ fontSize: 13, color: C.inkFaint, marginTop: 5, fontWeight: 500 }}>
+        <p style={{ fontSize: 13, color: C.inkFaint, marginTop: 5, fontWeight: 500, marginBottom: 0 }}>
           {subtitle}
-        </div>
+        </p>
       )}
     </div>
   );
@@ -293,17 +302,21 @@ export function PageHeader({ title, subtitle, style = {} }) {
 export function ErrorMessage({ message, style = {} }) {
   if (!message) return null;
   return (
-    <div style={{
-      background: C.errorSoft,
-      border: `1.5px solid ${C.error}33`,
-      borderRadius: 12,
-      padding: "10px 14px",
-      fontSize: 13.5,
-      color: C.error,
-      fontWeight: 500,
-      marginBottom: 14,
-      ...style,
-    }}>
+    <div
+      role="alert"
+      aria-live="assertive"
+      style={{
+        background: C.errorSoft,
+        border: `1.5px solid ${C.error}33`,
+        borderRadius: 12,
+        padding: "10px 14px",
+        fontSize: 13.5,
+        color: C.error,
+        fontWeight: 500,
+        marginBottom: 14,
+        ...style,
+      }}
+    >
       {message}
     </div>
   );
@@ -314,17 +327,21 @@ export function ErrorMessage({ message, style = {} }) {
 export function SuccessMessage({ message, style = {} }) {
   if (!message) return null;
   return (
-    <div style={{
-      background: C.sageSoft,
-      border: `1.5px solid ${C.sage}55`,
-      borderRadius: 12,
-      padding: "10px 14px",
-      fontSize: 13.5,
-      color: C.sageDeep,
-      fontWeight: 600,
-      marginBottom: 14,
-      ...style,
-    }}>
+    <div
+      role="status"
+      aria-live="polite"
+      style={{
+        background: C.sageSoft,
+        border: `1.5px solid ${C.sage}55`,
+        borderRadius: 12,
+        padding: "10px 14px",
+        fontSize: 13.5,
+        color: C.sageDeep,
+        fontWeight: 600,
+        marginBottom: 14,
+        ...style,
+      }}
+    >
       {message}
     </div>
   );
@@ -335,11 +352,15 @@ export function SuccessMessage({ message, style = {} }) {
 export function Toast({ text, error = false }) {
   if (!text) return null;
   return (
-    <div style={{
-      position: "fixed", left: 0, right: 0, bottom: 40,
-      display: "flex", justifyContent: "center",
-      pointerEvents: "none", zIndex: 100,
-    }}>
+    <div
+      role={error ? "alert" : "status"}
+      aria-live={error ? "assertive" : "polite"}
+      style={{
+        position: "fixed", left: 0, right: 0, bottom: 40,
+        display: "flex", justifyContent: "center",
+        pointerEvents: "none", zIndex: 100,
+      }}
+    >
       <div style={{
         background: error ? "rgba(192,57,43,0.92)" : "rgba(61,58,51,0.92)",
         color: "#FCFBF8",
