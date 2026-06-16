@@ -188,17 +188,17 @@ export default function LoginPage() {
 
 function Field({ label, focused, children }) {
   return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{
+    <label style={{ display: "block", marginBottom: 14 }}>
+      <span style={{
         fontSize: 12.5, fontWeight: 700,
         color: focused ? C.mauveDeep : C.inkSoft,
-        marginBottom: 6, padding: "0 2px",
+        marginBottom: 6, padding: "0 2px", display: "block",
         transition: "color .15s ease",
       }}>
         {label}
-      </div>
+      </span>
       {children}
-    </div>
+    </label>
   );
 }
 

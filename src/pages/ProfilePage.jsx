@@ -110,9 +110,9 @@ export default function ProfilePage() {
         display: "flex", alignItems: "baseline", justifyContent: "space-between",
         padding: "4px 2px 8px",
       }}>
-        <div style={{ fontFamily: HEAD, fontSize: 24, fontWeight: 700, color: C.ink, letterSpacing: 0.4 }}>
+        <h1 style={{ fontFamily: HEAD, fontSize: 24, fontWeight: 700, color: C.ink, letterSpacing: 0.4, margin: 0 }}>
           プロフィール
-        </div>
+        </h1>
         <button
           onClick={() => editing ? handleSave() : setEditing(true)}
           style={{
@@ -170,6 +170,7 @@ export default function ProfilePage() {
 
         {editing ? (
           <input
+            aria-label="ニックネーム"
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="ニックネーム"
@@ -199,6 +200,7 @@ export default function ProfilePage() {
       <Section title="ひとこと">
         {editing ? (
           <textarea
+            aria-label="ひとこと"
             value={bio}
             onChange={e => setBio(e.target.value)}
             rows={3}
