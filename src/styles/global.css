@@ -1,35 +1,83 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+:root {
+  --head: "Zen Maru Gothic", "Zen Kaku Gothic New", sans-serif;
+  --c-bg:         #F4F1EA;
+  --c-card:       #FCFBF8;
+  --c-line:       #E6E0D5;
+  --c-ink:        #3D3A33;
+  --c-ink-soft:   #6F6A5F;
+  --c-ink-faint:  #A39D90;
+  --c-mauve:      #B98AAE;
+  --c-mauve-deep: #9C6A8E;
+  --c-mauve-soft: #F1E7EF;
+  --c-sage:       #8FA98C;
+  --c-sage-deep:  #6E8C6B;
+  --c-sage-soft:  #E8EEE6;
+  --c-error:      #C0392B;
+  --c-error-soft: #FDEDEC;
+}
+
 body {
   margin: 0;
-  color: #222;
-  background: #fff;
-  font-family: system-ui, sans-serif;
+  background: var(--c-bg);
+  color: var(--c-ink);
+  font-family:
+    "Zen Kaku Gothic New",
+    "Hiragino Kaku Gothic ProN",
+    "Hiragino Sans",
+    system-ui,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-main {
-  padding: 24px;
+button {
+  font-family: inherit;
+  cursor: pointer;
 }
 
-header {
-  padding: 12px 24px;
-  border-bottom: 1px solid #ddd;
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
 }
 
-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+a {
+  color: var(--c-mauve-deep);
 }
 
-nav a {
-  color: #333;
-  text-decoration: none;
+/* スクロールバー非表示（チャット・ポップアップ内） */
+.noscroll::-webkit-scrollbar { width: 0; height: 0; }
+.noscroll { scrollbar-width: none; }
+
+/* ─── アニメーション ─────────────────────────────────────── */
+
+@keyframes om-bob {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-6px); }
 }
 
-nav a:hover,
-nav a.active {
-  text-decoration: underline;
+@keyframes om-fade-up {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: none; opacity: 1; }
 }
 
-h1 {
-  margin-top: 0;
+@keyframes om-pop {
+  0%   { transform: scale(.92); }
+  60%  { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+@keyframes om-dots {
+  0%, 80%, 100% { opacity: .25; }
+  40%           { opacity: 1; }
+}
+
+@keyframes om-ring {
+  0%   { transform: scale(.6); opacity: .5; }
+  100% { transform: scale(1.5); opacity: 0; }
 }

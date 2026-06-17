@@ -1,5 +1,7 @@
 import { useParams } from "react-router-dom";
 
+// TODO(D担当): screen-chat.jsx を参照してチャット機能を実装してください。
+// 実装済みUIデザイン: view/screen-chat.jsx
 export default function ChatPage() {
   const { groupId } = useParams();
 

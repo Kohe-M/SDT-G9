@@ -1,17 +1,23 @@
-import { useState } from "react";
+import { useState, useId } from "react";
 import { useNavigate } from "react-router-dom";
 import { registerUser, loginUser } from "../services/authService";
 import { validateEmail, validatePassword } from "../utils/validation";
+import { C, HEAD, Mascot, Icon } from "../components/DesignSystem";
 
 export default function LoginPage() {
-  const [isRegister, setIsRegister] = useState(false);
+  const [mode, setMode] = useState("login"); // "login" | "signup"
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [password2, setPassword2] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [showPw2, setShowPw2] = useState(false);
+  const [focus, setFocus] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  
-  // 画面遷移をおこなうためのフック
+
   const navigate = useNavigate();
+
+  const switchMode = (m) => { setMode(m); setError(""); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,29 +25,23 @@ export default function LoginPage() {
     setLoading(true);
 
     const emailCheck = validateEmail(email);
-    if (!emailCheck.ok) {
-      setError(emailCheck.message);
-      setLoading(false);
-      return;
-    }
+    if (!emailCheck.ok) { setError(emailCheck.message); setLoading(false); return; }
 
     const passwordCheck = validatePassword(password);
-    if (!passwordCheck.ok) {
-      setError(passwordCheck.message);
+    if (!passwordCheck.ok) { setError(passwordCheck.message); setLoading(false); return; }
+
+    if (mode === "signup" && password !== password2) {
+      setError("確認用パスワードが一致しません");
       setLoading(false);
       return;
     }
 
     try {
-      if (isRegister) {
-        // authServiceの新規登録関数を呼び出し
+      if (mode === "signup") {
         await registerUser(email, password);
-        // 新規登録後はプロフィール設定画面へ飛ばす
         navigate("/profile");
       } else {
-        // authServiceのログイン関数を呼び出し
         await loginUser(email, password);
-        // ログイン後は時間割画面へ飛ばす（C担当の画面）
         navigate("/timetable");
       }
     } catch (err) {
@@ -53,53 +53,196 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ maxWidth: "400px", margin: "50px auto", padding: "20px", border: "1px solid #ccc", borderRadius: "8px" }}>
-      <h2>{isRegister ? "新規アカウント作成" : "ログイン"}</h2>
-      
-      {error && <p style={{ color: "red", fontSize: "14px" }}>{error}</p>}
-
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-        <div>
-          <label>メールアドレス</label>
-          <input 
-            type="email" 
-            value={email} 
-            onChange={(e) => setEmail(e.target.value)} 
-            required 
-            style={{ width: "100%", padding: "8px", marginTop: "5px" }}
-          />
+    <div style={{
+      minHeight: "100vh", overflowY: "auto", background: C.bg,
+      padding: "0 24px 28px", display: "flex", flexDirection: "column",
+    }}>
+      {/* ブランド */}
+      <div style={{ textAlign: "center", paddingTop: 64 }}>
+        <Mascot size={78} tone="mauve" mood="happy"
+          style={{ animation: "om-bob 4s ease-in-out infinite" }} />
+        <div style={{ fontFamily: HEAD, fontSize: 28, fontWeight: 700, color: C.ink, marginTop: 6, letterSpacing: 0.6 }}>
+          ぼっち回避
         </div>
-        
-        <div>
-          <label>パスワード (6文字以上)</label>
-          <input 
-            type="password" 
-            value={password} 
-            onChange={(e) => setPassword(e.target.value)} 
-            required 
-            minLength="6"
-            style={{ width: "100%", padding: "8px", marginTop: "5px" }}
-          />
+        <div style={{ fontSize: 13, color: C.inkSoft, marginTop: 5, fontWeight: 500 }}>
+          授業で一緒になれる人を探そう
+        </div>
+      </div>
+
+      {/* カード */}
+      <div style={{
+        background: C.card, border: `1px solid ${C.line}`,
+        borderRadius: 22, padding: 20, marginTop: 28,
+      }}>
+        {/* タブ切替 */}
+        <div style={{
+          display: "flex", gap: 4, background: C.bg,
+          borderRadius: 14, padding: 4, marginBottom: 18,
+        }}>
+          {[["login", "ログイン"], ["signup", "新規登録"]].map(([m, label]) => {
+            const on = mode === m;
+            return (
+              <button key={m} onClick={() => switchMode(m)} style={{
+                flex: 1, appearance: "none", border: "none", cursor: "pointer",
+                padding: "10px 0", borderRadius: 11, fontSize: 14,
+                fontWeight: on ? 700 : 600,
+                background: on ? C.mauveSoft : "transparent",
+                color: on ? C.mauveDeep : C.inkFaint,
+                transition: "all .16s ease",
+              }}>{label}</button>
+            );
+          })}
         </div>
 
-        <button 
-          type="submit" 
-          disabled={loading}
-          style={{ padding: "10px", backgroundColor: "#007bff", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}
-        >
-          {loading ? "処理中..." : (isRegister ? "登録する" : "ログインする")}
-        </button>
-      </form>
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column" }}>
+          <Field label="メールアドレス" focused={focus === "email"}>
+            {(id) => (
+              <input
+                id={id}
+                type="email" value={email} inputMode="email" autoCapitalize="none"
+                onChange={(e) => setEmail(e.target.value)}
+                onFocus={() => setFocus("email")} onBlur={() => setFocus(null)}
+                placeholder="you@example-univ.ac.jp"
+                style={inputStyle(focus === "email")}
+              />
+            )}
+          </Field>
 
-      <div style={{ marginTop: "20px", textAlign: "center" }}>
-        <button 
-          onClick={() => setIsRegister(!isRegister)} 
-          style={{ background: "none", border: "none", color: "#007bff", cursor: "pointer", textDecoration: "underline" }}
-        >
-          {isRegister ? "すでにアカウントをお持ちの方はこちら" : "新しくアカウントを作る方はこちら"}
-        </button>
+          <Field label="パスワード" focused={focus === "pw"}>
+            {(id) => (
+              <div style={{ position: "relative" }}>
+                <input
+                  id={id}
+                  type={showPw ? "text" : "password"} value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onFocus={() => setFocus("pw")} onBlur={() => setFocus(null)}
+                  placeholder="••••••••"
+                  style={{ ...inputStyle(focus === "pw"), paddingRight: 46 }}
+                />
+                <EyeToggle on={showPw} onClick={() => setShowPw(v => !v)} />
+              </div>
+            )}
+          </Field>
+
+          {mode === "signup" && (
+            <Field label="パスワード（確認）" focused={focus === "pw2"}>
+              {(id) => (
+                <div style={{ position: "relative" }}>
+                  <input
+                    id={id}
+                    type={showPw2 ? "text" : "password"} value={password2}
+                    onChange={(e) => setPassword2(e.target.value)}
+                    onFocus={() => setFocus("pw2")} onBlur={() => setFocus(null)}
+                    placeholder="••••••••"
+                    style={{ ...inputStyle(focus === "pw2"), paddingRight: 46 }}
+                  />
+                  <EyeToggle on={showPw2} onClick={() => setShowPw2(v => !v)} />
+                </div>
+              )}
+            </Field>
+          )}
+
+          {error && (
+            <div role="alert" style={{
+              marginTop: 2, marginBottom: 14,
+              background: "#F4E8E5", border: "1px solid #E7D2CD",
+              borderRadius: 14, padding: "12px 14px",
+              color: "#9C5B5B", fontSize: 13, fontWeight: 600, lineHeight: 1.5,
+              display: "flex", alignItems: "flex-start", gap: 8,
+            }}>
+              <span style={{ marginTop: 1 }}>
+                <Icon name="close" size={15} color="#9C5B5B" strokeWidth={2.4} />
+              </span>
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              marginTop: 4, appearance: "none", border: "none",
+              cursor: loading ? "default" : "pointer",
+              background: loading ? C.line : C.mauve,
+              color: loading ? C.inkFaint : "#fff",
+              borderRadius: 16, padding: "15px 0",
+              fontSize: 15.5, fontWeight: 700, letterSpacing: 0.4,
+              boxShadow: loading ? "none" : `0 10px 24px -10px ${C.mauve}`,
+              transition: "all .18s ease",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}
+          >
+            {loading ? "確認中…" : (mode === "login" ? "ログイン" : "アカウントを作成")}
+          </button>
+        </form>
+
+        {mode === "login" && (
+          <div style={{ textAlign: "center", marginTop: 14 }}>
+            <button style={{
+              appearance: "none", border: "none", background: "transparent",
+              cursor: "pointer", color: C.inkFaint, fontSize: 12.5,
+              fontWeight: 600, textDecoration: "underline", textUnderlineOffset: 3,
+            }}>パスワードを忘れた方</button>
+          </div>
+        )}
+      </div>
+
+      <div style={{ flex: 1 }} />
+      <div style={{ textAlign: "center", fontSize: 11, color: C.inkFaint, marginTop: 22, lineHeight: 1.6 }}>
+        続けることで、利用規約とプライバシーポリシーに<br />同意したものとみなされます。
       </div>
     </div>
   );
 }
 
+// useId() で生成したIDをrender propで子へ渡し、label[htmlFor]と input[id] を明示的に関連付ける。
+// これによりlabel内にbuttonを含む構造でも誤作動しない。
+function Field({ label, focused, children }) {
+  const id = useId();
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <label
+        htmlFor={id}
+        style={{
+          fontSize: 12.5, fontWeight: 700,
+          color: focused ? C.mauveDeep : C.inkSoft,
+          marginBottom: 6, padding: "0 2px", display: "block",
+          transition: "color .15s ease",
+        }}
+      >
+        {label}
+      </label>
+      {children(id)}
+    </div>
+  );
+}
+
+function inputStyle(focused) {
+  return {
+    width: "100%",
+    border: `1.5px solid ${focused ? C.mauve : C.line}`,
+    borderRadius: 14, padding: "13px 15px",
+    fontSize: 15, color: C.ink,
+    background: focused ? C.card : C.bg,
+    outline: "none",
+    transition: "border-color .15s ease, background .15s ease",
+  };
+}
+
+function EyeToggle({ on, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={on ? "パスワードを隠す" : "パスワードを表示"}
+      style={{
+        position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)",
+        width: 34, height: 34, borderRadius: 999,
+        border: "none", cursor: "pointer", background: "transparent",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      }}
+    >
+      <Icon name={on ? "eye" : "eyeOff"} size={19} color={C.inkFaint} />
+    </button>
+  );
+}
