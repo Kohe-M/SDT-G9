@@ -90,13 +90,11 @@ export default function HomePage() {
             tone="mauve"
             label="ガチで一緒に勉強したい"
             sub="課題もテスト対策も本気で。"
-            count={3}
           />
           <BocchiButton
             tone="sage"
             label="ゆる〜く一緒に受けたい"
             sub="となりに誰かいれば、それで充分。"
-            count={5}
           />
         </div>
 
@@ -185,9 +183,10 @@ function NextRow({ data, period, minsUntil }) {
 }
 
 // ─── BocchiButton ─────────────────────────────────────────────────────────────
+// TODO(B担当): マッチング実装後に disabled を外し onClick を追加してください。
+// 参考デザイン: view/screen-bocchi.jsx BocchiButton
 
-function BocchiButton({ tone, label, sub, count }) {
-  const [down, setDown] = useState(false);
+function BocchiButton({ tone, label, sub }) {
   const mauve  = tone === "mauve";
   const accent = mauve ? C.mauve : C.sage;
   const deep   = mauve ? C.mauveDeep : C.sageDeep;
@@ -195,20 +194,15 @@ function BocchiButton({ tone, label, sub, count }) {
 
   return (
     <button
-      onMouseDown={() => setDown(true)}
-      onMouseUp={() => setDown(false)}
-      onMouseLeave={() => setDown(false)}
+      disabled
+      aria-label={`${label}（準備中）`}
       style={{
-        appearance: "none", border: `1.5px solid ${down ? deep : C.line}`,
-        textAlign: "left", cursor: "pointer", width: "100%",
+        appearance: "none", border: `1.5px solid ${C.line}`,
+        textAlign: "left", cursor: "default", width: "100%",
         borderRadius: 24, padding: "18px 20px",
         background: C.card, color: C.ink,
         display: "flex", alignItems: "center", gap: 14,
-        boxShadow: down
-          ? "inset 0 2px 8px rgba(61,58,51,0.06)"
-          : `0 8px 22px -14px ${accent}`,
-        transform: down ? "translateY(1px) scale(0.992)" : "none",
-        transition: "transform .12s ease, box-shadow .18s ease, border-color .18s ease",
+        opacity: 0.6,
       }}
     >
       <div style={{
@@ -221,16 +215,11 @@ function BocchiButton({ tone, label, sub, count }) {
         <div style={{ fontSize: 16.5, fontWeight: 700, color: C.ink, letterSpacing: 0.2, lineHeight: 1.35 }}>{label}</div>
         <div style={{ fontSize: 12.5, color: C.inkSoft, marginTop: 3, lineHeight: 1.4 }}>{sub}</div>
         <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 9 }}>
-          <span style={{ display: "flex" }}>
-            {[0, 1, 2].map(i => (
-              <span key={i} style={{
-                width: 17, height: 17, borderRadius: 999, background: soft,
-                border: `1.5px solid ${C.card}`, marginLeft: i ? -6 : 0,
-              }} />
-            ))}
-          </span>
-          <span style={{ fontSize: 11.5, fontWeight: 600, color: deep }}>
-            いま{count}人が待ってる
+          <span style={{
+            fontSize: 11.5, fontWeight: 600, color: deep,
+            background: soft, padding: "3px 9px", borderRadius: 999,
+          }}>
+            マッチング機能は近日公開予定
           </span>
         </div>
       </div>
