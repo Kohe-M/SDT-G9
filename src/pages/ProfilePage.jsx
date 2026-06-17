@@ -5,15 +5,10 @@ import { saveUserProfile, getUserProfile } from "../services/userService";
 import { validateDisplayName } from "../utils/validation";
 import { buildUserProfileData } from "../utils/dataBuilders";
 import { C, HEAD, Icon, Mascot, Divider } from "../components/DesignSystem";
+import { toArray } from "../utils/profileUtils";
 
 const MOTIV_OPTIONS = ["がっつり", "ほどほど", "ゆるめ", "マイペース"];
 const STYLE_OPTIONS = ["前の方に座る", "後ろが落ち着く", "ノートしっかり", "聞き流し派", "出席は皆勤", "課題は早め"];
-
-function toArray(val) {
-  if (Array.isArray(val)) return val;
-  if (typeof val === "string" && val) return [val];
-  return [];
-}
 
 export default function ProfilePage() {
   const navigate = useNavigate();

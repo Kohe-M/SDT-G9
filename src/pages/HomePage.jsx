@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { getMyClasses } from "../services/classService";
-import { C, HEAD, Icon, Mascot, Tag, Portal } from "../components/DesignSystem";
+import { C, HEAD, Icon, Mascot } from "../components/DesignSystem";
+
+// TODO(B担当): マッチングUI（MatchOverlay）の実装は view/screen-bocchi.jsx を参照。
+// マッチング開始 → /matching/:classId への遷移ロジックはこのPRの範囲外。
 
 const PERIOD_TIMES = [
   { n: 1, label: "1限", time: "9:00–10:35",  start: [9, 0],   end: [10, 35] },
@@ -47,9 +49,7 @@ function getNextClass(classes) {
 }
 
 export default function HomePage() {
-  const navigate = useNavigate();
   const [myClasses, setMyClasses] = useState([]);
-  const [match, setMatch] = useState(null); // null | {phase, tone, cls}
 
   useEffect(() => {
     setMyClasses(getMyClasses());
@@ -57,11 +57,6 @@ export default function HomePage() {
 
   const current = getCurrentClass(myClasses);
   const next    = getNextClass(myClasses);
-
-  const startMatch = (tone, cls) => {
-    setMatch({ phase: "searching", tone, cls });
-    setTimeout(() => setMatch(m => m ? { ...m, phase: "found" } : null), 2200);
-  };
 
   return (
     <div style={{ padding: "6px 18px 20px", background: C.bg, minHeight: "100vh" }}>
@@ -96,14 +91,12 @@ export default function HomePage() {
             label="ガチで一緒に勉強したい"
             sub="課題もテスト対策も本気で。"
             count={3}
-            onPress={() => startMatch("mauve", current?.cls)}
           />
           <BocchiButton
             tone="sage"
             label="ゆる〜く一緒に受けたい"
             sub="となりに誰かいれば、それで充分。"
             count={5}
-            onPress={() => startMatch("sage", current?.cls)}
           />
         </div>
 
@@ -115,14 +108,6 @@ export default function HomePage() {
           マッチするまで名前は出ません。いつでもキャンセルOK。
         </div>
       </div>
-
-      {match && (
-        <MatchOverlay
-          state={match}
-          onClose={() => setMatch(null)}
-          onOpenChat={(groupId) => navigate(`/chat/${groupId}`)}
-        />
-      )}
     </div>
   );
 }
@@ -201,7 +186,7 @@ function NextRow({ data, period, minsUntil }) {
 
 // ─── BocchiButton ─────────────────────────────────────────────────────────────
 
-function BocchiButton({ tone, label, sub, count, onPress }) {
+function BocchiButton({ tone, label, sub, count }) {
   const [down, setDown] = useState(false);
   const mauve  = tone === "mauve";
   const accent = mauve ? C.mauve : C.sage;
@@ -213,7 +198,6 @@ function BocchiButton({ tone, label, sub, count, onPress }) {
       onMouseDown={() => setDown(true)}
       onMouseUp={() => setDown(false)}
       onMouseLeave={() => setDown(false)}
-      onClick={onPress}
       style={{
         appearance: "none", border: `1.5px solid ${down ? deep : C.line}`,
         textAlign: "left", cursor: "pointer", width: "100%",
@@ -257,138 +241,5 @@ function BocchiButton({ tone, label, sub, count, onPress }) {
         <Icon name="chevron" size={16} color="#fff" strokeWidth={2.4} />
       </div>
     </button>
-  );
-}
-
-// ─── MatchOverlay ─────────────────────────────────────────────────────────────
-
-function MatchOverlay({ state, onClose, onOpenChat }) {
-  const { tone, phase, cls } = state;
-  const mauve   = tone === "mauve";
-  const accent  = mauve ? C.mauve : C.sage;
-  const deep    = mauve ? C.mauveDeep : C.sageDeep;
-  const soft    = mauve ? C.mauveSoft : C.sageSoft;
-  const searching = phase === "searching";
-
-  return (
-    <Portal>
-      <div
-        style={{
-          position: "fixed", inset: 0, zIndex: 80,
-          background: "rgba(45,42,36,0.32)", backdropFilter: "blur(3px)",
-          WebkitBackdropFilter: "blur(3px)",
-          display: "flex", alignItems: "flex-end", justifyContent: "center",
-        }}
-        onClick={searching ? undefined : onClose}
-      >
-        <div
-          onClick={e => e.stopPropagation()}
-          style={{
-            width: "100%", background: C.bg,
-            borderRadius: "28px 28px 0 0", padding: "12px 22px 40px",
-            boxShadow: "0 -20px 50px -20px rgba(0,0,0,0.4)",
-            animation: "om-fade-up .32s ease both",
-          }}
-        >
-          <div style={{ width: 40, height: 5, borderRadius: 999, background: C.line, margin: "0 auto 18px" }} />
-
-          {searching ? (
-            <div style={{ textAlign: "center", padding: "8px 0 6px" }}>
-              <div style={{ position: "relative", width: 96, height: 96, margin: "0 auto" }}>
-                {[0, 1].map(i => (
-                  <span key={i} style={{
-                    position: "absolute", inset: 0, borderRadius: 999,
-                    border: `2px solid ${accent}`,
-                    animation: `om-ring 1.8s ease-out ${i * 0.9}s infinite`,
-                  }} />
-                ))}
-                <div style={{
-                  position: "absolute", inset: 14, borderRadius: 999,
-                  background: soft, display: "flex", alignItems: "center", justifyContent: "center",
-                }}>
-                  <Mascot size={52} tone={mauve ? "mauve" : "sage"}
-                    style={{ animation: "om-bob 1.6s ease-in-out infinite" }} />
-                </div>
-              </div>
-              <div style={{ fontFamily: HEAD, fontSize: 19, fontWeight: 700, color: C.ink, marginTop: 18 }}>
-                仲間をさがしています
-                <span style={{ animation: "om-dots 1.4s infinite" }}>・</span>
-                <span style={{ animation: "om-dots 1.4s infinite .2s" }}>・</span>
-                <span style={{ animation: "om-dots 1.4s infinite .4s" }}>・</span>
-              </div>
-              <div style={{ fontSize: 12.5, color: C.inkSoft, marginTop: 7 }}>
-                {cls?.name || "授業"} で、同じ温度感の人を探し中
-              </div>
-              <button
-                onClick={onClose}
-                style={{
-                  marginTop: 22, appearance: "none", border: "none", background: "transparent",
-                  color: C.inkFaint, fontSize: 13, fontWeight: 600, cursor: "pointer",
-                  textDecoration: "underline", textUnderlineOffset: 3,
-                }}
-              >やっぱりやめる</button>
-            </div>
-          ) : (
-            <div style={{ animation: "om-pop .4s ease both" }}>
-              <div style={{ textAlign: "center" }}>
-                <span style={{
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                  padding: "6px 13px", borderRadius: 999, background: soft, color: deep,
-                  fontSize: 13, fontWeight: 700,
-                }}>
-                  <Icon name="sparkle" size={14} color={deep} /> マッチしました
-                </span>
-                <div style={{ fontFamily: HEAD, fontSize: 22, fontWeight: 700, color: C.ink, marginTop: 12 }}>
-                  ひとり、見つかりました。
-                </div>
-              </div>
-
-              <div style={{
-                display: "flex", alignItems: "center", gap: 14, marginTop: 18,
-                background: C.card, border: `1px solid ${C.line}`, borderRadius: 20, padding: 16,
-              }}>
-                <div style={{
-                  width: 56, height: 56, borderRadius: 999, background: soft,
-                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                }}>
-                  <Mascot size={46} tone={mauve ? "mauve" : "sage"} mood="happy" />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: C.ink }}>
-                    もちこ <span style={{ fontSize: 12, color: C.inkFaint, fontWeight: 500 }}>・ 経済2年</span>
-                  </div>
-                  <div style={{ display: "flex", gap: 6, marginTop: 7, flexWrap: "wrap" }}>
-                    <Tag tone={mauve ? "mauve" : "sage"}>{mauve ? "がっつり派" : "ゆるめ"}</Tag>
-                    <Tag>マイペース</Tag>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={() => onOpenChat("bocchi-group")}
-                style={{
-                  width: "100%", marginTop: 16, appearance: "none", border: "none",
-                  cursor: "pointer", background: accent, color: "#fff",
-                  borderRadius: 16, padding: "15px 0", fontSize: 15.5, fontWeight: 700,
-                  letterSpacing: 0.4, display: "flex", alignItems: "center",
-                  justifyContent: "center", gap: 8,
-                  boxShadow: `0 10px 24px -10px ${accent}`,
-                }}
-              >
-                <Icon name="chat" size={19} color="#fff" /> グループチャットを開く
-              </button>
-              <button
-                onClick={onClose}
-                style={{
-                  width: "100%", marginTop: 8, appearance: "none", border: "none",
-                  background: "transparent", color: C.inkFaint, fontSize: 13,
-                  fontWeight: 600, cursor: "pointer", padding: 8,
-                }}
-              >あとで</button>
-            </div>
-          )}
-        </div>
-      </div>
-    </Portal>
   );
 }

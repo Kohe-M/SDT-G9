@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useId } from "react";
 import { useNavigate } from "react-router-dom";
 import { registerUser, loginUser } from "../services/authService";
 import { validateEmail, validatePassword } from "../utils/validation";
@@ -96,40 +96,49 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column" }}>
           <Field label="メールアドレス" focused={focus === "email"}>
-            <input
-              type="email" value={email} inputMode="email" autoCapitalize="none"
-              onChange={(e) => setEmail(e.target.value)}
-              onFocus={() => setFocus("email")} onBlur={() => setFocus(null)}
-              placeholder="you@example-univ.ac.jp"
-              style={inputStyle(focus === "email")}
-            />
+            {(id) => (
+              <input
+                id={id}
+                type="email" value={email} inputMode="email" autoCapitalize="none"
+                onChange={(e) => setEmail(e.target.value)}
+                onFocus={() => setFocus("email")} onBlur={() => setFocus(null)}
+                placeholder="you@example-univ.ac.jp"
+                style={inputStyle(focus === "email")}
+              />
+            )}
           </Field>
 
           <Field label="パスワード" focused={focus === "pw"}>
-            <div style={{ position: "relative" }}>
-              <input
-                type={showPw ? "text" : "password"} value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onFocus={() => setFocus("pw")} onBlur={() => setFocus(null)}
-                placeholder="••••••••"
-                style={{ ...inputStyle(focus === "pw"), paddingRight: 46 }}
-              />
-              <EyeToggle on={showPw} onClick={() => setShowPw(v => !v)} />
-            </div>
+            {(id) => (
+              <div style={{ position: "relative" }}>
+                <input
+                  id={id}
+                  type={showPw ? "text" : "password"} value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onFocus={() => setFocus("pw")} onBlur={() => setFocus(null)}
+                  placeholder="••••••••"
+                  style={{ ...inputStyle(focus === "pw"), paddingRight: 46 }}
+                />
+                <EyeToggle on={showPw} onClick={() => setShowPw(v => !v)} />
+              </div>
+            )}
           </Field>
 
           {mode === "signup" && (
             <Field label="パスワード（確認）" focused={focus === "pw2"}>
-              <div style={{ position: "relative" }}>
-                <input
-                  type={showPw2 ? "text" : "password"} value={password2}
-                  onChange={(e) => setPassword2(e.target.value)}
-                  onFocus={() => setFocus("pw2")} onBlur={() => setFocus(null)}
-                  placeholder="••••••••"
-                  style={{ ...inputStyle(focus === "pw2"), paddingRight: 46 }}
-                />
-                <EyeToggle on={showPw2} onClick={() => setShowPw2(v => !v)} />
-              </div>
+              {(id) => (
+                <div style={{ position: "relative" }}>
+                  <input
+                    id={id}
+                    type={showPw2 ? "text" : "password"} value={password2}
+                    onChange={(e) => setPassword2(e.target.value)}
+                    onFocus={() => setFocus("pw2")} onBlur={() => setFocus(null)}
+                    placeholder="••••••••"
+                    style={{ ...inputStyle(focus === "pw2"), paddingRight: 46 }}
+                  />
+                  <EyeToggle on={showPw2} onClick={() => setShowPw2(v => !v)} />
+                </div>
+              )}
             </Field>
           )}
 
@@ -186,19 +195,25 @@ export default function LoginPage() {
   );
 }
 
+// useId() で生成したIDをrender propで子へ渡し、label[htmlFor]と input[id] を明示的に関連付ける。
+// これによりlabel内にbuttonを含む構造でも誤作動しない。
 function Field({ label, focused, children }) {
+  const id = useId();
   return (
-    <label style={{ display: "block", marginBottom: 14 }}>
-      <span style={{
-        fontSize: 12.5, fontWeight: 700,
-        color: focused ? C.mauveDeep : C.inkSoft,
-        marginBottom: 6, padding: "0 2px", display: "block",
-        transition: "color .15s ease",
-      }}>
+    <div style={{ marginBottom: 14 }}>
+      <label
+        htmlFor={id}
+        style={{
+          fontSize: 12.5, fontWeight: 700,
+          color: focused ? C.mauveDeep : C.inkSoft,
+          marginBottom: 6, padding: "0 2px", display: "block",
+          transition: "color .15s ease",
+        }}
+      >
         {label}
-      </span>
-      {children}
-    </label>
+      </label>
+      {children(id)}
+    </div>
   );
 }
 
