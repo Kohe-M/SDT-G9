@@ -3,6 +3,8 @@ import { useParams } from "react-router-dom";
 import { useState } from "react";
 import { sendMessage } from "../services/chatService";
 
+// TODO(D担当): screen-chat.jsx を参照してチャット機能を実装してください。
+// 実装済みUIデザイン: view/screen-chat.jsx
 export default function ChatPage() {
   const { groupId } = useParams();
   const [text, setText] = useState("");

@@ -1,30 +1,64 @@
 import { NavLink } from "react-router-dom";
+import { C, Icon } from "./DesignSystem";
 import { ROUTES } from "../constants/routes";
 
-const navItems = [
-  { label: "ホーム", to: ROUTES.HOME },
-  { label: "ログイン", to: ROUTES.LOGIN },
-  { label: "プロフィール", to: ROUTES.PROFILE },
-  { label: "時間割", to: ROUTES.TIMETABLE },
-  { label: "授業検索", to: ROUTES.CLASS_SEARCH },
-  { label: "マッチング確認", to: ROUTES.MATCHING_TEST },
-  { label: "チャット確認", to: ROUTES.CHAT_TEST },
+// 開発中のみ表示するページへのショートカットリンク
+// BottomTabBar (ホーム/時間割/プロフィール) では到達できないページへの導線
+const DEV_LINKS = [
+  { label: "マッチング", to: ROUTES.MATCHING_TEST },
+  { label: "チャット",   to: ROUTES.CHAT_TEST },
 ];
 
 export default function Header() {
   return (
-    <header>
-      <nav aria-label="メインナビゲーション">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            className={({ isActive }) => (isActive ? "active" : undefined)}
-          >
-            {item.label}
-          </NavLink>
-        ))}
-      </nav>
-    </header>
+    <div
+      role="banner"
+      style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 40,
+        height: 50,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 18px",
+        background: "rgba(252,251,248,0.92)",
+        backdropFilter: "blur(14px) saturate(180%)",
+        WebkitBackdropFilter: "blur(14px) saturate(180%)",
+        borderBottom: `1px solid ${C.line}`,
+      }}
+    >
+      {/* アプリ名 */}
+      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+        <Icon name="sparkle" size={17} color={C.mauve} />
+        <span style={{ fontSize: 16, fontWeight: 700, color: C.ink, letterSpacing: 0.5 }}>
+          ぼっちゼロ
+        </span>
+      </div>
+
+      {/* 開発用ショートカット（未実装画面への導線） */}
+      {import.meta.env.DEV && (
+        <nav aria-label="開発用ナビゲーション" style={{ display: "flex", gap: 6 }}>
+          {DEV_LINKS.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              style={({ isActive }) => ({
+                fontSize: 11.5,
+                fontWeight: 600,
+                color: isActive ? C.mauveDeep : C.inkFaint,
+                textDecoration: "none",
+                background: isActive ? C.mauveSoft : "transparent",
+                padding: "4px 10px",
+                borderRadius: 999,
+                transition: "all .13s ease",
+              })}
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+      )}
+    </div>
   );
 }

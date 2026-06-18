@@ -1,6 +1,18 @@
 node_modules
 dist
+.vite/
 .env
 .env.local
 *.log
 .chrome-*
+
+# OS
+.DS_Store
+
+# 設計作業ファイル（製品コードに含めない）
+view/
+screenshots/
+screenshot.py
+
+# PDF（バイナリ資料）
+*.pdf
