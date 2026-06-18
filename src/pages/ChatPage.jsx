@@ -1,42 +1,139 @@
 // ChatPage.jsx
-import { useParams } from "react-router-dom";
-import { useState } from "react";
-import { sendMessage } from "../services/chatService";
+import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { TextField, Button, C } from "../components/DesignSystem";
+import { sendMessage, fetchMessages } from "../services/chatService";
 
-// TODO(D担当): screen-chat.jsx を参照してチャット機能を実装してください。
-// 実装済みUIデザイン: view/screen-chat.jsx
 export default function ChatPage() {
   const { groupId } = useParams();
+  const navigate = useNavigate();
+
   const [text, setText] = useState("");
   const [messages, setMessages] = useState([]);
 
-  const handleSend = () => {
-    if (!text) return;
-    sendMessage(groupId, "User001", text); //仮ユーザーIDです！ "User001"を実際のユーザーIDに置き換えてください。
-    setMessages([...messages, text]); //送信したメッセージを画面に更新表示
-    setText("");  //送信後、入力欄が空にする。
+  // ✅ 初期ロード
+  useEffect(() => {
+    const loadMessages = async () => {
+      const data = await fetchMessages(groupId);
+      setMessages(data);
+    };
+    loadMessages();
+  }, [groupId]);
+
+  // ✅ 送信
+  const handleSend = async () => {
+    if (!text.trim()) return;
+
+    await sendMessage(groupId, "User001", text);
+    setText("");
+
+    const data = await fetchMessages(groupId);
+    setMessages(data);
   };
 
   return (
-    <div>
-      <h1>チャット確認画面</h1>
-      <p>対象グループID: {groupId}</p>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: C.background, // LINEっぽい背景
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      {/* ✅ ヘッダー */}
+      <div
+        style={{
+          height: 56,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 12px",
+          background: "#fff",
+          borderBottom: `1px solid ${C.line}`,
+        }}
+      >
+       
+        <Button
+          variant="ghost"
+          size="sm"
+          style={{
+            
+          fontSize: 16,
+          fontWeight: 600
 
-      <input
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="メッセージを入力"
-      />
 
-      <button onClick={handleSend}>
-        送信
-      </button>
+          }}
+          onClick={() => navigate(-1)}
+        >
+        ←
+        </Button>
 
-       {/* メッセージ一覧表示 */}
-      <div>
-        {messages.map((msg, index) => (<p key={index}>{msg}</p>))}
+
+        <strong>チャット</strong>
+
+        <div style={{ width: 32 }} /> {/* 右余白 */}
       </div>
 
+      {/* ✅ メッセージ一覧 */}
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          padding: 12,
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+        }}
+      >
+        {messages.map((msg) => {
+          const isMe = msg.userId === "User001";
+
+          return (
+            <div
+              key={msg.id}
+              style={{
+                display: "flex",
+                justifyContent: isMe ? "flex-end" : "flex-start",
+              }}
+            >
+              <div
+                style={{
+                  maxWidth: "70%",
+                  padding: "10px 14px",
+                  borderRadius: 18,
+                  background: isMe ? "#a2e563" : "#ffffff",
+                  color: "#000",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
+                }}
+              >
+                {msg.text}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ✅ 入力欄 */}
+      <div
+        style={{
+          padding: 10,
+          background: "#fff",
+          borderTop: "1px solid #ddd",
+        }}
+      >
+        <div style={{ display: "flex", gap: 8 }}>
+          <TextField
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="メッセージ"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSend();
+            }}
+          />
+
+          <Button onClick={handleSend}>送信</Button>
+        </div>
+      </div>
     </div>
   );
 }

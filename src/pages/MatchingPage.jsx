@@ -1,28 +1,41 @@
 // MatchingPage.jsx
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { createMatchRequest } from "../services/matchingService";
+import { PageShell, PageHeader, Card, Button } from "../components/DesignSystem";
 
 export default function MatchingPage() {
   const { classCode } = useParams();
+  const navigate = useNavigate();
   const [status, setStatus] = useState("未マッチ");
 
+  const handleMatch = async () => {
+    const groupId = await createMatchRequest("User001", classCode);
 
-  const handleMatch = () => {
-    createMatchRequest("User001", classCode); //仮ユーザーIDです！ "User001"を実際のユーザーIDに置き換えてください。
-    setStatus("待機中..."); 
+    if (groupId) {
+      setStatus("マッチ成功！");
+      navigate(`/chat/${groupId}`);
+    } else {
+      setStatus("待機中...");
+    }
   };
 
-
   return (
-    <div>
-      <h1>マッチング確認画面</h1>
-      <p>D担当がここにマッチング機能を実装します。</p>
-      <p>対象授業コード: {classCode}</p>
+    <PageShell>
+      <PageHeader
+        title="マッチング確認"
+        subtitle="同じ授業のユーザーとマッチングします"
+      />
 
-      <button onClick={handleMatch}>マッチング開始</button>
+      <Card>
+        <p>対象授業コード: {classCode}</p>
 
-      <p>状態: {status}</p>
-    </div>
+        <Button fullWidth onClick={handleMatch}>
+          マッチング開始
+        </Button>
+
+        <p style={{ marginTop: 12 }}>状態: {status}</p>
+      </Card>
+    </PageShell>
   );
 }
