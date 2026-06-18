@@ -11,7 +11,7 @@ export default function ChatPage() {
   const [text, setText] = useState("");
   const [messages, setMessages] = useState([]);
 
-  // ✅ 初期ロード
+  // 初期ロード
   useEffect(() => {
     const loadMessages = async () => {
       const data = await fetchMessages(groupId);
@@ -20,7 +20,7 @@ export default function ChatPage() {
     loadMessages();
   }, [groupId]);
 
-  // ✅ 送信
+  // 送信
   const handleSend = async () => {
     if (!text.trim()) return;
 
@@ -40,7 +40,7 @@ export default function ChatPage() {
         flexDirection: "column",
       }}
     >
-      {/* ✅ ヘッダー */}
+      {/* ヘッダー */}
       <div
         style={{
           height: 56,
@@ -74,7 +74,7 @@ export default function ChatPage() {
         <div style={{ width: 32 }} /> {/* 右余白 */}
       </div>
 
-      {/* ✅ メッセージ一覧 */}
+      {/* メッセージ一覧 */}
       <div
         style={{
           flex: 1,
@@ -113,7 +113,7 @@ export default function ChatPage() {
         })}
       </div>
 
-      {/* ✅ 入力欄 */}
+      {/*  入力欄 */}
       <div
         style={{
           padding: 10,
