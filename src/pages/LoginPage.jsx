@@ -1,8 +1,9 @@
-import { useState, useId } from "react";
-import { useNavigate } from "react-router-dom";
-import { registerUser, loginUser } from "../services/authService";
+import { useEffect, useId, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { registerUser, loginUser, observeAuthState } from "../services/authService";
+import { ROUTES } from "../constants/routes";
 import { validateEmail, validatePassword } from "../utils/validation";
-import { C, HEAD, Mascot, Icon } from "../components/DesignSystem";
+import { Button, C, HEAD, Mascot, Icon } from "../components/DesignSystem";
 
 export default function LoginPage() {
   const [mode, setMode] = useState("login"); // "login" | "signup"
@@ -16,6 +17,18 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+  const location = useLocation();
+  const submitInProgressRef = useRef(false);
+
+  useEffect(() => {
+    const unsubscribe = observeAuthState((user) => {
+      if (user && !submitInProgressRef.current) {
+        navigate(ROUTES.TIMETABLE, { replace: true });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [navigate]);
 
   const switchMode = (m) => { setMode(m); setError(""); };
 
@@ -38,13 +51,17 @@ export default function LoginPage() {
 
     try {
       if (mode === "signup") {
+        submitInProgressRef.current = true;
         await registerUser(email, password);
-        navigate("/profile");
+        navigate(ROUTES.PROFILE);
       } else {
+        submitInProgressRef.current = true;
         await loginUser(email, password);
-        navigate("/timetable");
+        const from = location.state?.from?.pathname || ROUTES.TIMETABLE;
+        navigate(from, { replace: true });
       }
     } catch (err) {
+      submitInProgressRef.current = false;
       setError("エラーが発生しました。入力内容を確認してください。");
       console.error(err);
     } finally {
@@ -191,6 +208,14 @@ export default function LoginPage() {
       <div style={{ textAlign: "center", fontSize: 11, color: C.inkFaint, marginTop: 22, lineHeight: 1.6 }}>
         続けることで、利用規約とプライバシーポリシーに<br />同意したものとみなされます。
       </div>
+      <Button
+        type="button"
+        variant="ghost"
+        onClick={() => navigate(ROUTES.HOME)}
+        style={{ alignSelf: "center", marginTop: 14 }}
+      >
+        ホームへ戻る
+      </Button>
     </div>
   );
 }
