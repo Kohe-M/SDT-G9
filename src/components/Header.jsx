@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { C, Icon } from "./DesignSystem";
 import { ROUTES } from "../constants/routes";
 
@@ -29,12 +29,22 @@ export default function Header() {
       }}
     >
       {/* アプリ名 */}
-      <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+      <Link
+        to={ROUTES.HOME}
+        aria-label="ホームへ戻る"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 7,
+          color: "inherit",
+          textDecoration: "none",
+        }}
+      >
         <Icon name="sparkle" size={17} color={C.mauve} />
         <span style={{ fontSize: 16, fontWeight: 700, color: C.ink, letterSpacing: 0.5 }}>
           ぼっちゼロ
         </span>
-      </div>
+      </Link>
 
       {/* 開発用ショートカット（未実装画面への導線） */}
       {import.meta.env.DEV && (

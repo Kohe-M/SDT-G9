@@ -7,6 +7,7 @@ import LoginPage from "../pages/LoginPage";
 import MatchingPage from "../pages/MatchingPage";
 import ProfilePage from "../pages/ProfilePage";
 import TimetablePage from "../pages/TimetablePage";
+import RequireAuth from "./RequireAuth";
 
 // ルート定義をRouterから分離し、テストでMemoryRouterと組み合わせられるようにする
 export function AppRoutesContent() {
@@ -15,11 +16,13 @@ export function AppRoutesContent() {
       <Route element={<Layout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/timetable" element={<TimetablePage />} />
         <Route path="/classes/search" element={<ClassSearchPage />} />
-        <Route path="/matching/:classCode" element={<MatchingPage />} />
-        <Route path="/chat/:groupId" element={<ChatPage />} />
+        <Route element={<RequireAuth />}>
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/matching/:classCode" element={<MatchingPage />} />
+          <Route path="/chat/:groupId" element={<ChatPage />} />
+        </Route>
       </Route>
     </Routes>
   );
