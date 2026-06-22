@@ -1,97 +1,219 @@
-// MatchingPage.jsx
-import { useParams, useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { createMatchRequest } from "../services/matchingService";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { auth } from "../firebase";
+import { chatPath } from "../constants/routes";
 import {
-  collection,
-  getDocs,
-  query,
-  where,
-} from "firebase/firestore";
-import { db } from "../firebase";
+  cancelMatching,
+  getExistingGroupId,
+  startMatching,
+  subscribeMatchingCandidates,
+  subscribeUserClassGroups,
+} from "../services/matchingService";
 import {
-  PageShell,
-  PageHeader,
-  Card,
   Button,
+  Card,
+  ErrorMessage,
+  PageHeader,
+  PageShell,
+  SuccessMessage,
 } from "../components/DesignSystem";
+
+const STATUS_TEXT = {
+  idle: "初期状態",
+  registering: "待機登録中",
+  waiting: "同じ授業のユーザーを探しています",
+  matched: "マッチ成立",
+  canceling: "キャンセル中",
+  error: "エラー",
+};
 
 export default function MatchingPage() {
   const { classCode } = useParams();
   const navigate = useNavigate();
+  const [status, setStatus] = useState("idle");
+  const [error, setError] = useState("");
+  const queueUnsubscribeRef = useRef(null);
+  const groupUnsubscribeRef = useRef(null);
+  const cleanupQueueRef = useRef(false);
+  const activeUserIdRef = useRef(null);
+  const settledRef = useRef(false);
 
-  const userId = window.location.hash.includes("#2")
-    ? "User002"
-    : "User001";
-
-  const [status, setStatus] = useState("未マッチ");
-
-  const checkExistingGroup = async () => {
-    const q = query(
-      collection(db, "groups"),
-      where("classCode", "==", classCode)
-    );
-
-    const snapshot = await getDocs(q);
-
-    for (const docSnap of snapshot.docs) {
-      const data = docSnap.data();
-      if (data.members.includes(userId)) {
-        return docSnap.id;
-      }
-    }
-
-    return null;
+  const stopSubscriptions = () => {
+    queueUnsubscribeRef.current?.();
+    groupUnsubscribeRef.current?.();
+    queueUnsubscribeRef.current = null;
+    groupUnsubscribeRef.current = null;
   };
 
-  const handleMatch = async () => {
-    let groupId = await createMatchRequest(userId, classCode);
+  const cleanupQueue = async () => {
+    const userId = activeUserIdRef.current;
+    cleanupQueueRef.current = false;
+    stopSubscriptions();
 
-    const hash = window.location.hash.includes("#2") ? "#2" : "";
+    if (userId) {
+      await cancelMatching({ userId });
+    }
+  };
 
-    if (groupId) {
-      navigate(`/chat/${groupId}${hash}`);
+  const finishMatching = async (groupId) => {
+    if (settledRef.current) return;
+
+    settledRef.current = true;
+    const userId = activeUserIdRef.current ?? auth.currentUser?.uid;
+    cleanupQueueRef.current = false;
+    stopSubscriptions();
+    setStatus("matched");
+
+    try {
+      if (userId) {
+        await cancelMatching({ userId });
+      }
+      activeUserIdRef.current = null;
+    } catch (cleanupError) {
+      cleanupQueueRef.current = Boolean(userId);
+      console.error(cleanupError);
+    } finally {
+      navigate(chatPath({ groupId }));
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (cleanupQueueRef.current) {
+        cleanupQueue().catch(() => {});
+      } else {
+        stopSubscriptions();
+      }
+    };
+  }, []);
+
+  const handleStart = async () => {
+    if (status === "registering" || status === "waiting" || status === "canceling") return;
+
+    const userId = auth.currentUser?.uid;
+    setError("");
+
+    if (!userId) {
+      setStatus("error");
+      setError("ログイン情報を取得できません。再読み込みしてください。");
       return;
     }
 
-    setStatus("待機中...");
+    activeUserIdRef.current = userId;
+    settledRef.current = false;
+    setStatus("registering");
 
-    for (let i = 0; i < 5; i++) {
-      await new Promise((r) => setTimeout(r, 1000));
-
-      groupId = await createMatchRequest(userId, classCode);
-
-      if (groupId) {
-        navigate(`/chat/${groupId}${hash}`);
+    try {
+      const existingGroupId = await getExistingGroupId({ userId, classCode });
+      if (existingGroupId) {
+        await finishMatching(existingGroupId);
         return;
       }
 
-      const existing = await checkExistingGroup();
+      await startMatching({ userId, classCode });
+      cleanupQueueRef.current = true;
+      setStatus("waiting");
 
-      if (existing) {
-        navigate(`/chat/${existing}${hash}`);
+      stopSubscriptions();
+      const groupUnsubscribe = subscribeUserClassGroups({
+        userId,
+        classCode,
+        onMatched: (groupId) => {
+          finishMatching(groupId);
+        },
+        onError: (matchingError) => {
+          if (settledRef.current) return;
+          setStatus("error");
+          setError(matchingError.message || "マッチングに失敗しました。");
+        },
+      });
+
+      if (settledRef.current) {
+        groupUnsubscribe();
         return;
+      }
+
+      groupUnsubscribeRef.current = groupUnsubscribe;
+
+      const queueUnsubscribe = subscribeMatchingCandidates({
+        userId,
+        classCode,
+        onMatched: (groupId) => {
+          finishMatching(groupId);
+        },
+        onError: (matchingError) => {
+          if (settledRef.current) return;
+          setStatus("error");
+          setError(matchingError.message || "マッチングに失敗しました。");
+        },
+      });
+
+      if (settledRef.current) {
+        queueUnsubscribe();
+        return;
+      }
+
+      queueUnsubscribeRef.current = queueUnsubscribe;
+    } catch (matchingError) {
+      cleanupQueueRef.current = false;
+      stopSubscriptions();
+      setStatus("error");
+      setError(matchingError.message || "マッチングに失敗しました。");
+      if (activeUserIdRef.current) {
+        await cancelMatching({ userId: activeUserIdRef.current }).catch(() => {});
       }
     }
   };
+
+  const handleCancel = async () => {
+    const userId = activeUserIdRef.current ?? auth.currentUser?.uid;
+
+    if (!userId || status !== "waiting") return;
+
+    setStatus("canceling");
+    setError("");
+
+    try {
+      await cleanupQueue();
+      activeUserIdRef.current = null;
+      setStatus("idle");
+    } catch (cancelError) {
+      cleanupQueueRef.current = true;
+      setStatus("error");
+      setError(cancelError.message || "待機のキャンセルに失敗しました。");
+    }
+  };
+
+  const isWaiting = status === "registering" || status === "waiting" || status === "canceling";
 
   return (
     <PageShell>
       <PageHeader
         title="マッチング確認"
-        subtitle="同じ授業のユーザーとマッチングします"
+        subtitle="同じ授業のユーザーと2人グループを作成します"
       />
 
       <Card>
-        <p>対象授業コード: {classCode}</p>
+        <ErrorMessage message={error} />
+        <SuccessMessage message={status === "matched" ? STATUS_TEXT.matched : ""} />
 
-        <Button fullWidth onClick={handleMatch}>
+        <p style={{ margin: "0 0 12px" }}>対象授業コード: {classCode}</p>
+        <p style={{ margin: "0 0 18px" }}>状態: {STATUS_TEXT[status]}</p>
+
+        <Button fullWidth onClick={handleStart} disabled={isWaiting}>
           マッチング開始
         </Button>
 
-        <p style={{ marginTop: 12 }}>
-          状態: {status}
-        </p>
+        {status === "waiting" && (
+          <Button
+            fullWidth
+            variant="secondary"
+            onClick={handleCancel}
+            style={{ marginTop: 12 }}
+          >
+            待機をキャンセル
+          </Button>
+        )}
       </Card>
     </PageShell>
   );

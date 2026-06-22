@@ -1,57 +1,121 @@
-// chatService.js
-// D担当: チャットメッセージ送信・取得処理をここに実装する。
-// chatService.js
-import { db } from "../firebase";
 import {
   collection,
-  addDoc,
-  serverTimestamp,
-  getDocs,
-  query,
+  doc,
+  onSnapshot,
   orderBy,
+  query,
+  serverTimestamp,
+  where,
+  writeBatch,
 } from "firebase/firestore";
+import { db } from "../firebase";
 
-// 送信
-export const sendMessage = async (groupId, userId, text) => {
-  try {
-    await addDoc(
-      collection(db, "groups", groupId, "messages"),
-      {
-        userId: userId,
-        text: text,
-        createdAt: serverTimestamp(),
-      }
-    );
+const MAX_MESSAGE_LENGTH = 200;
 
-    console.log("Firestoreに保存成功");
-  } catch (error) {
-    console.error("送信エラー:", error);
+function requireValue(value, name) {
+  if (value === undefined || value === null || value === "") {
+    throw new Error(`${name} is required`);
   }
-};
+  return String(value);
+}
 
-// 取得
-export const fetchMessages = async (groupId) => {
-  try {
-    const q = query(
-      collection(db, "groups", groupId, "messages"),
-      orderBy("createdAt")
-    );
-
-    const snapshot = await getDocs(q);
-
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
-  } catch (error) {
-    console.error("取得エラー:", error);
-    return [];
+export function validateMessage(text) {
+  if (text === null || text === undefined) {
+    return { ok: false, message: "メッセージを入力してください。", text: "" };
   }
-};
 
-// メッセージのバリデーション
-export const validateMessage = (text) => {
-  if (!text || text.trim() === "") return false;
-  if (text.length > 200) return false;
-  return true;
-};
+  const trimmedText = String(text).trim();
+
+  if (trimmedText.length === 0) {
+    return { ok: false, message: "メッセージを入力してください。", text: "" };
+  }
+
+  if (trimmedText.length > MAX_MESSAGE_LENGTH) {
+    return {
+      ok: false,
+      message: `${MAX_MESSAGE_LENGTH}文字以内で入力してください。`,
+      text: trimmedText,
+    };
+  }
+
+  return { ok: true, message: "", text: trimmedText };
+}
+
+export function subscribeToMessages({ groupId, onMessages, onError }) {
+  const targetGroupId = requireValue(groupId, "groupId");
+  const messagesQuery = query(
+    collection(db, "groups", targetGroupId, "messages"),
+    orderBy("createdAt")
+  );
+
+  return onSnapshot(
+    messagesQuery,
+    (snapshot) => {
+      onMessages(snapshot.docs.map((messageDoc) => ({
+        id: messageDoc.id,
+        ...messageDoc.data(),
+      })));
+    },
+    (error) => {
+      onError?.(error);
+    }
+  );
+}
+
+export async function sendMessage({ groupId, senderId, text }) {
+  const targetGroupId = requireValue(groupId, "groupId");
+  const uid = requireValue(senderId, "senderId");
+  const validation = validateMessage(text);
+
+  if (!validation.ok) {
+    throw new Error(validation.message);
+  }
+
+  const groupRef = doc(db, "groups", targetGroupId);
+  const messageRef = doc(collection(db, "groups", targetGroupId, "messages"));
+  const batch = writeBatch(db);
+  const sentAt = serverTimestamp();
+
+  batch.set(messageRef, {
+    senderId: uid,
+    text: validation.text,
+    createdAt: sentAt,
+  });
+  batch.update(groupRef, {
+    lastMessageAt: sentAt,
+    lastMessageText: validation.text,
+    updatedAt: sentAt,
+  });
+
+  await batch.commit();
+  return messageRef.id;
+}
+
+export function subscribeToUserGroups({ userId, onGroups, onError }) {
+  const uid = requireValue(userId, "userId");
+  const groupsQuery = query(
+    collection(db, "groups"),
+    where("members", "array-contains", uid)
+  );
+
+  return onSnapshot(
+    groupsQuery,
+    (snapshot) => {
+      const groups = snapshot.docs
+        .map((groupDoc) => ({
+          id: groupDoc.id,
+          ...groupDoc.data(),
+        }))
+        .sort((a, b) => {
+          const aTime = a.updatedAt?.toMillis?.() ?? a.lastMessageAt?.toMillis?.() ?? 0;
+          const bTime = b.updatedAt?.toMillis?.() ?? b.lastMessageAt?.toMillis?.() ?? 0;
+          return bTime - aTime;
+        });
+
+      onGroups(groups);
+    },
+    (error) => {
+      onError?.(error);
+    }
+  );
+}
