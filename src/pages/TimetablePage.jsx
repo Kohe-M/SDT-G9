@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   getMyClasses,
   removeClassFromTimetable,
@@ -6,6 +7,7 @@ import {
   addClassToTimetable as addToStorage,
 } from "../services/classService";
 import { C } from "../components/DesignSystem";
+import { matchingPath } from "../constants/routes";
 
 const DAYS = ["月", "火", "水", "木", "金"];
 const PERIODS = [
@@ -35,6 +37,7 @@ function buildOccupied(map) {
 }
 
 export default function TimetablePage() {
+  const navigate = useNavigate();
   const [myClasses, setMyClasses] = useState([]);
   const [sheet, setSheet] = useState(null);
   const [toast, setToast] = useState(null);
@@ -134,6 +137,7 @@ export default function TimetablePage() {
                   span={span}
                   onRemove={() => cls && handleRemove(cls.code)}
                   onOpen={() => cls?.syllabusUrl && window.open(cls.syllabusUrl, "_blank", "noopener")}
+                  onOpenMatching={() => cls && navigate(matchingPath({ classCode: cls.code }))}
                   onAdd={() => setSheet({ dayIndex: di, period: p.n })}
                 />
               </div>
@@ -164,7 +168,7 @@ export default function TimetablePage() {
   );
 }
 
-function Cell({ cls, span, onRemove, onOpen, onAdd }) {
+function Cell({ cls, span, onRemove, onOpen, onOpenMatching, onAdd }) {
   const [down, setDown] = useState(false);
 
   if (!cls) {
@@ -185,13 +189,12 @@ function Cell({ cls, span, onRemove, onOpen, onAdd }) {
   }
 
   return (
-    <button
-      onClick={onOpen}
+    <div
       onMouseDown={() => setDown(true)}
       onMouseUp={() => setDown(false)}
       onMouseLeave={() => setDown(false)}
       style={{
-        width: "100%", height: "100%", position: "relative", appearance: "none", cursor: "pointer",
+        width: "100%", height: "100%", position: "relative",
         textAlign: "left", borderRadius: 14, padding: "8px 6px 7px",
         background: down ? C.mauveSoft : C.card,
         border: `1.5px solid ${down ? C.mauveDeep : C.line}`,
@@ -226,18 +229,40 @@ function Cell({ cls, span, onRemove, onOpen, onAdd }) {
           {cls.room}
         </div>
       )}
-      <span style={{
-        marginTop: "auto", alignSelf: "flex-start",
-        fontSize: 8, fontWeight: 800, color: C.mauveDeep,
-        letterSpacing: -0.2, whiteSpace: "nowrap",
-      }}>
-        ↗ シラバス
-      </span>
-      <span
-        role="button"
-        aria-label="削除"
-        onClick={(e) => { e.stopPropagation(); onRemove(); }}
+      <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 3 }}>
+        {cls.syllabusUrl && (
+          <button
+            type="button"
+            onClick={onOpen}
+            aria-label={`「${cls.name}」のシラバスを開く`}
+            style={{
+              appearance: "none", border: "none", background: "transparent", cursor: "pointer",
+              padding: 0, fontSize: 8, fontWeight: 800, color: C.mauveDeep,
+              letterSpacing: -0.2, whiteSpace: "nowrap",
+            }}
+          >
+            ↗ シラバス
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onOpenMatching}
+          aria-label={`「${cls.name}」のマッチングを探す`}
+          style={{
+            appearance: "none", border: "none", background: "transparent", cursor: "pointer",
+            padding: 0, fontSize: 8, fontWeight: 800, color: C.sageDeep,
+            letterSpacing: -0.2, whiteSpace: "nowrap",
+          }}
+        >
+          マッチングを探す
+        </button>
+      </div>
+      <button
+        type="button"
+        aria-label={`「${cls.name}」を削除`}
+        onClick={onRemove}
         style={{
+          appearance: "none", border: "none",
           position: "absolute", top: 4, right: 4, width: 18, height: 18,
           borderRadius: 999, cursor: "pointer",
           background: "rgba(61,58,51,0.07)",
@@ -246,8 +271,8 @@ function Cell({ cls, span, onRemove, onOpen, onAdd }) {
         }}
       >
         ×
-      </span>
-    </button>
+      </button>
+    </div>
   );
 }
 

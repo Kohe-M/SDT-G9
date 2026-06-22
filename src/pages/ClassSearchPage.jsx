@@ -1,11 +1,14 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { searchClasses, addClassToTimetable } from "../services/classService";
 import { C } from "../components/DesignSystem";
+import { matchingPath } from "../constants/routes";
 
 const DAYS = ["月", "火", "水", "木", "金"];
 const PERIODS = [1, 2, 3, 4, 5];
 
 export default function ClassSearchPage() {
+  const navigate = useNavigate();
   const [keyword, setKeyword] = useState("");
   const [results, setResults] = useState([]);
   const [registering, setRegistering] = useState(null);
@@ -45,6 +48,10 @@ export default function ClassSearchPage() {
   function showToast(text, error = false) {
     setToast({ text, error });
     setTimeout(() => setToast(null), 2600);
+  }
+
+  function handleOpenMatching(item) {
+    navigate(matchingPath({ classCode: item.code }));
   }
 
   return (
@@ -106,6 +113,19 @@ export default function ClassSearchPage() {
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                  <button
+                    onClick={() => handleOpenMatching(item)}
+                    aria-label={`「${item.name}」のマッチングを探す`}
+                    style={{
+                      appearance: "none", cursor: "pointer",
+                      background: C.sageSoft, color: C.sageDeep,
+                      border: `1px solid ${C.sage}`, borderRadius: 999,
+                      padding: "6px 10px", fontSize: 12, fontWeight: 700,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    マッチングを探す
+                  </button>
                   {item.syllabusUrl && (
                     <a
                       href={item.syllabusUrl}
