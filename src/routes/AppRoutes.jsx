@@ -1,5 +1,6 @@
 import { HashRouter, Route, Routes } from "react-router-dom";
 import Layout from "../components/Layout";
+import ChatListPage from "../pages/ChatListPage";
 import ChatPage from "../pages/ChatPage";
 import ClassSearchPage from "../pages/ClassSearchPage";
 import HomePage from "../pages/HomePage";
@@ -20,6 +21,7 @@ export function AppRoutesContent() {
         <Route path="/classes/search" element={<ClassSearchPage />} />
         <Route element={<RequireAuth />}>
           <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/chats" element={<ChatListPage />} />
           <Route path="/matching/:classCode" element={<MatchingPage />} />
           <Route path="/chat/:groupId" element={<ChatPage />} />
         </Route>
