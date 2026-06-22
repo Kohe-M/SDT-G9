@@ -188,14 +188,34 @@ function Cell({ cls, span, onRemove, onOpen, onOpenMatching, onAdd }) {
     );
   }
 
+  const canOpenSyllabus = Boolean(cls.syllabusUrl);
+
+  function handleOpenCard() {
+    if (canOpenSyllabus) onOpen();
+  }
+
+  function handleCardKeyDown(e) {
+    if (!canOpenSyllabus) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onOpen();
+    }
+  }
+
   return (
     <div
-      onMouseDown={() => setDown(true)}
+      role={canOpenSyllabus ? "button" : undefined}
+      tabIndex={canOpenSyllabus ? 0 : undefined}
+      aria-label={canOpenSyllabus ? `「${cls.name}」の授業カードを開く` : undefined}
+      onClick={handleOpenCard}
+      onKeyDown={handleCardKeyDown}
+      onMouseDown={() => canOpenSyllabus && setDown(true)}
       onMouseUp={() => setDown(false)}
       onMouseLeave={() => setDown(false)}
       style={{
         width: "100%", height: "100%", position: "relative",
         textAlign: "left", borderRadius: 14, padding: "8px 6px 7px",
+        cursor: canOpenSyllabus ? "pointer" : "default",
         background: down ? C.mauveSoft : C.card,
         border: `1.5px solid ${down ? C.mauveDeep : C.line}`,
         boxShadow: down ? "inset 0 1px 6px rgba(61,58,51,0.06)" : "none",
@@ -233,7 +253,10 @@ function Cell({ cls, span, onRemove, onOpen, onOpenMatching, onAdd }) {
         {cls.syllabusUrl && (
           <button
             type="button"
-            onClick={onOpen}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpen();
+            }}
             aria-label={`「${cls.name}」のシラバスを開く`}
             style={{
               appearance: "none", border: "none", background: "transparent", cursor: "pointer",
@@ -246,7 +269,10 @@ function Cell({ cls, span, onRemove, onOpen, onOpenMatching, onAdd }) {
         )}
         <button
           type="button"
-          onClick={onOpenMatching}
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenMatching();
+          }}
           aria-label={`「${cls.name}」のマッチングを探す`}
           style={{
             appearance: "none", border: "none", background: "transparent", cursor: "pointer",
@@ -260,7 +286,10 @@ function Cell({ cls, span, onRemove, onOpen, onOpenMatching, onAdd }) {
       <button
         type="button"
         aria-label={`「${cls.name}」を削除`}
-        onClick={onRemove}
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove();
+        }}
         style={{
           appearance: "none", border: "none",
           position: "absolute", top: 4, right: 4, width: 18, height: 18,

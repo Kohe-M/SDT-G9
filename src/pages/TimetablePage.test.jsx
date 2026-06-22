@@ -41,6 +41,16 @@ function seedRegisteredClass() {
 }
 
 describe("TimetablePage — マッチング導線", () => {
+  test("登録済み授業カード本体を押すとシラバスを別タブで開く", () => {
+    const openSpy = vi.spyOn(window, "open").mockImplementation(() => null);
+    seedRegisteredClass();
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "「登録済み授業」の授業カードを開く" }));
+
+    expect(openSpy).toHaveBeenCalledWith(registeredClass.syllabusUrl, "_blank", "noopener");
+  });
+
   test("登録済み授業のマッチング操作から対象授業のマッチング画面へ遷移する", () => {
     seedRegisteredClass();
     renderPage();
