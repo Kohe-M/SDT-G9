@@ -52,6 +52,30 @@ beforeEach(() => {
 });
 
 describe("routing and auth guard", () => {
+  test("bottom tab bar shows the formal user navigation", () => {
+    renderAt("/");
+
+    expect(screen.getByRole("button", { name: "ホーム" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "時間割" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "チャット" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "プロフィール" })).toBeTruthy();
+  });
+
+  test("bottom tab links keep home, timetable, and chats routable", async () => {
+    currentAuthUser = authUser;
+    renderAt("/");
+
+    fireEvent.click(screen.getByRole("button", { name: "時間割" }));
+    expectPath("/timetable");
+
+    fireEvent.click(screen.getByRole("button", { name: "ホーム" }));
+    expectPath("/");
+
+    fireEvent.click(screen.getByRole("button", { name: "チャット" }));
+    await waitFor(() => expectPath("/chats"));
+    expect(screen.getByRole("heading", { name: "チャット" })).toBeTruthy();
+  });
+
   test("/login shows an in-page home return button", () => {
     renderAt("/login");
 
@@ -62,6 +86,22 @@ describe("routing and auth guard", () => {
 
   test("unauthenticated /matching/:classCode redirects to /login", async () => {
     renderAt("/matching/TEST101");
+
+    await screen.findByPlaceholderText("you@example-univ.ac.jp");
+
+    expectPath("/login");
+  });
+
+  test("unauthenticated /chats redirects to /login", async () => {
+    renderAt("/chats");
+
+    await screen.findByPlaceholderText("you@example-univ.ac.jp");
+
+    expectPath("/login");
+  });
+
+  test("unauthenticated /profile redirects to /login", async () => {
+    renderAt("/profile");
 
     await screen.findByPlaceholderText("you@example-univ.ac.jp");
 
@@ -112,5 +152,12 @@ describe("routing and auth guard", () => {
     fireEvent.click(screen.getByRole("button", { name: "ホームへ戻る" }));
 
     expectPath("/");
+  });
+
+  test("home does not expose a context-free matching shortcut", () => {
+    renderAt("/");
+
+    expect(screen.queryByRole("link", { name: "マッチング" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "チャット" })).toBeNull();
   });
 });
