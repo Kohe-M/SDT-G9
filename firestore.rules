@@ -1,0 +1,130 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function groupDoc(groupId) {
+      return get(/databases/$(database)/documents/groups/$(groupId));
+    }
+
+    function isMemberData(data) {
+      return signedIn()
+        && data.members is list
+        && request.auth.uid in data.members;
+    }
+
+    function isGroupMember(groupId) {
+      return isMemberData(groupDoc(groupId).data);
+    }
+
+    function isValidMemberList(members) {
+      return members is list
+        && members.size() == 2
+        && members[0] is string
+        && members[1] is string
+        && members[0] != members[1]
+        && request.auth.uid in members;
+    }
+
+    function isValidMessageText(text) {
+      return text is string
+        && text.size() > 0
+        && text.size() <= 200
+        && text.matches('.*\\S.*');
+    }
+
+    function queuePath(uid) {
+      return /databases/$(database)/documents/matchingQueue/$(uid);
+    }
+
+    function isValidQueueData(data, uid) {
+      return data.keys().hasOnly([
+          'userId',
+          'classCode',
+          'createdAt'
+        ])
+        && data.userId == uid
+        && data.classCode is string
+        && data.classCode.size() > 0;
+    }
+
+    function isWaitingForClass(uid, classCode) {
+      return exists(queuePath(uid))
+        && get(queuePath(uid)).data.userId == uid
+        && get(queuePath(uid)).data.classCode == classCode;
+    }
+
+    match /groups/{groupId} {
+      allow read: if isMemberData(resource.data);
+
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'classCode',
+          'members',
+          'createdAt',
+          'updatedAt',
+          'lastMessageAt',
+          'lastMessageText'
+        ])
+        && request.resource.data.classCode is string
+        && request.resource.data.classCode.size() > 0
+        && isValidMemberList(request.resource.data.members)
+        && isWaitingForClass(
+          request.resource.data.members[0],
+          request.resource.data.classCode
+        )
+        && isWaitingForClass(
+          request.resource.data.members[1],
+          request.resource.data.classCode
+        )
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.lastMessageAt == null
+        && request.resource.data.lastMessageText == '';
+
+      allow update: if isMemberData(resource.data)
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          'updatedAt',
+          'lastMessageAt',
+          'lastMessageText'
+        ])
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.lastMessageAt == request.time
+        && isValidMessageText(request.resource.data.lastMessageText);
+
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isGroupMember(groupId);
+
+        allow create: if isGroupMember(groupId)
+          && request.resource.data.keys().hasOnly([
+            'senderId',
+            'text',
+            'createdAt'
+          ])
+          && request.resource.data.senderId == request.auth.uid
+          && isValidMessageText(request.resource.data.text)
+          && request.resource.data.createdAt == request.time;
+
+        allow update, delete: if false;
+      }
+    }
+
+    match /matchingQueue/{uid} {
+      allow read: if signedIn();
+
+      allow create, update: if signedIn()
+        && request.auth.uid == uid
+        && isValidQueueData(request.resource.data, request.auth.uid)
+        && request.resource.data.createdAt == request.time;
+
+      allow delete: if signedIn()
+        && request.auth.uid == uid
+        && isValidQueueData(resource.data, request.auth.uid);
+    }
+  }
+}
