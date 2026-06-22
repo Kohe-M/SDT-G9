@@ -12,13 +12,15 @@ import {
 import { db } from "../firebase";
 
 export const createMatchRequest = async (userId, classCode) => {
-  // 待機登録
+  // ✅ 待機登録
   const myDoc = await addDoc(collection(db, "matchingQueue"), {
     userId,
     classCode,
   });
 
-  // 同じ授業の人を探す
+  // ✅ 少し待つ（Firestore同期用）
+  await new Promise((r) => setTimeout(r, 300));
+
   const q = query(
     collection(db, "matchingQueue"),
     where("classCode", "==", classCode)
@@ -31,26 +33,41 @@ export const createMatchRequest = async (userId, classCode) => {
     userId: d.data().userId,
   }));
 
-  // 自分以外のユーザー取得
   const otherUsers = users.filter((u) => u.userId !== userId);
 
-  // マッチ成立
   if (otherUsers.length > 0) {
     const partner = otherUsers[0];
 
-    // グループ作成
+    // ✅ ★ 既存groupチェック（これが超重要）
+    const groupQuery = query(
+      collection(db, "groups"),
+      where("classCode", "==", classCode)
+    );
+
+    const groupSnapshot = await getDocs(groupQuery);
+
+    for (const docSnap of groupSnapshot.docs) {
+      const data = docSnap.data();
+
+      if (
+        data.members.includes(userId) &&
+        data.members.includes(partner.userId)
+      ) {
+        return docSnap.id; // ✅ 既存を返す
+      }
+    }
+
+    // ✅ なければ作成
     const groupRef = await addDoc(collection(db, "groups"), {
       members: [userId, partner.userId],
       classCode,
     });
 
-    // 待機削除（これ重要）
     await deleteDoc(doc(db, "matchingQueue", myDoc.id));
     await deleteDoc(doc(db, "matchingQueue", partner.id));
 
     return groupRef.id;
   }
 
-  // 待機状態
   return null;
 };

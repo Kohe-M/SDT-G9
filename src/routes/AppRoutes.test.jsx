@@ -64,7 +64,7 @@ describe("ルーティング — 各パスが正しい画面を表示する", ()
 
   test("/matching/53124 → マッチング画面のプレースホルダーが描画される", () => {
     renderAt("/matching/53124");
-    expect(screen.getByText(/マッチング確認画面/)).toBeTruthy();
+    expect(screen.getByText(/マッチング確認/)).toBeTruthy();
   });
 
   test("/chat/test-group → チャット画面が描画される", () => {

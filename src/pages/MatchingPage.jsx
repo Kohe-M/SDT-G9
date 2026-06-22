@@ -2,21 +2,76 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { createMatchRequest } from "../services/matchingService";
-import { PageShell, PageHeader, Card, Button } from "../components/DesignSystem";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
+import { db } from "../firebase";
+import {
+  PageShell,
+  PageHeader,
+  Card,
+  Button,
+} from "../components/DesignSystem";
 
 export default function MatchingPage() {
   const { classCode } = useParams();
   const navigate = useNavigate();
+
+  const userId = window.location.hash.includes("#2")
+    ? "User002"
+    : "User001";
+
   const [status, setStatus] = useState("未マッチ");
 
+  const checkExistingGroup = async () => {
+    const q = query(
+      collection(db, "groups"),
+      where("classCode", "==", classCode)
+    );
+
+    const snapshot = await getDocs(q);
+
+    for (const docSnap of snapshot.docs) {
+      const data = docSnap.data();
+      if (data.members.includes(userId)) {
+        return docSnap.id;
+      }
+    }
+
+    return null;
+  };
+
   const handleMatch = async () => {
-    const groupId = await createMatchRequest("User001", classCode);
+    let groupId = await createMatchRequest(userId, classCode);
+
+    const hash = window.location.hash.includes("#2") ? "#2" : "";
 
     if (groupId) {
-      setStatus("マッチ成功！");
-      navigate(`/chat/${groupId}`);
-    } else {
-      setStatus("待機中...");
+      navigate(`/chat/${groupId}${hash}`);
+      return;
+    }
+
+    setStatus("待機中...");
+
+    for (let i = 0; i < 5; i++) {
+      await new Promise((r) => setTimeout(r, 1000));
+
+      groupId = await createMatchRequest(userId, classCode);
+
+      if (groupId) {
+        navigate(`/chat/${groupId}${hash}`);
+        return;
+      }
+
+      const existing = await checkExistingGroup();
+
+      if (existing) {
+        navigate(`/chat/${existing}${hash}`);
+        return;
+      }
     }
   };
 
@@ -34,7 +89,9 @@ export default function MatchingPage() {
           マッチング開始
         </Button>
 
-        <p style={{ marginTop: 12 }}>状態: {status}</p>
+        <p style={{ marginTop: 12 }}>
+          状態: {status}
+        </p>
       </Card>
     </PageShell>
   );

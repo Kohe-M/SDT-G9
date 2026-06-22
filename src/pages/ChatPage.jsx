@@ -2,91 +2,81 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { TextField, Button, C } from "../components/DesignSystem";
-import { sendMessage, fetchMessages } from "../services/chatService";
+import { sendMessage } from "../services/chatService";
+
+import {
+  collection,
+  query,
+  orderBy,
+  onSnapshot,
+} from "firebase/firestore";
+import { db } from "../firebase";
 
 export default function ChatPage() {
   const { groupId } = useParams();
   const navigate = useNavigate();
 
+  const userId = window.location.hash.includes("#2")
+    ? "User002"
+    : "User001";
+
   const [text, setText] = useState("");
   const [messages, setMessages] = useState([]);
 
-  // 初期ロード
   useEffect(() => {
-    const loadMessages = async () => {
-      const data = await fetchMessages(groupId);
+    const q = query(
+      collection(db, "groups", groupId, "messages"),
+      orderBy("createdAt")
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
       setMessages(data);
-    };
-    loadMessages();
+    });
+
+    return () => unsubscribe();
   }, [groupId]);
 
-  // 送信
   const handleSend = async () => {
     if (!text.trim()) return;
-
-    await sendMessage(groupId, "User001", text);
+    await sendMessage(groupId, userId, text);
     setText("");
-
-    const data = await fetchMessages(groupId);
-    setMessages(data);
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: C.background, // LINEっぽい背景
+    <div style={{
+      minHeight: "100vh",
+      background: C.background,
+      display: "flex",
+      flexDirection: "column",
+    }}>
+      <div style={{
+        height: 56,
         display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {/* ヘッダー */}
-      <div
-        style={{
-          height: 56,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0 12px",
-          background: "#fff",
-          borderBottom: `1px solid ${C.line}`,
-        }}
-      >
-       
-        <Button
-          variant="ghost"
-          size="sm"
-          style={{
-            
-          fontSize: 16,
-          fontWeight: 600
-
-
-          }}
-          onClick={() => navigate(-1)}
-        >
-        ←
-        </Button>
-
-
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 12px",
+        background: "#fff",
+        borderBottom: `1px solid ${C.line}`,
+      }}>
+        <Button onClick={() => navigate(-1)}>←</Button>
         <strong>チャット</strong>
-
-        <div style={{ width: 32 }} /> {/* 右余白 */}
+        <div style={{ width: 32 }} />
       </div>
 
-      {/* メッセージ一覧 */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: "auto",
-          padding: 12,
-          display: "flex",
-          flexDirection: "column",
-          gap: 10,
-        }}
-      >
+      <div style={{
+        flex: 1,
+        overflowY: "auto",
+        padding: 12,
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}>
         {messages.map((msg) => {
-          const isMe = msg.userId === "User001";
+          const isMe = msg.userId === userId;
 
           return (
             <div
@@ -96,16 +86,13 @@ export default function ChatPage() {
                 justifyContent: isMe ? "flex-end" : "flex-start",
               }}
             >
-              <div
-                style={{
-                  maxWidth: "70%",
-                  padding: "10px 14px",
-                  borderRadius: 18,
-                  background: isMe ? "#a2e563" : "#ffffff",
-                  color: "#000",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
-                }}
-              >
+              <div style={{
+                maxWidth: "70%",
+                padding: "10px 14px",
+                borderRadius: 18,
+                background: isMe ? "#a2e563" : "#ffffff",
+                boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
+              }}>
                 {msg.text}
               </div>
             </div>
@@ -113,14 +100,11 @@ export default function ChatPage() {
         })}
       </div>
 
-      {/*  入力欄 */}
-      <div
-        style={{
-          padding: 10,
-          background: "#fff",
-          borderTop: "1px solid #ddd",
-        }}
-      >
+      <div style={{
+        padding: 10,
+        background: "#fff",
+        borderTop: "1px solid #ddd",
+      }}>
         <div style={{ display: "flex", gap: 8 }}>
           <TextField
             value={text}
@@ -130,7 +114,6 @@ export default function ChatPage() {
               if (e.key === "Enter") handleSend();
             }}
           />
-
           <Button onClick={handleSend}>送信</Button>
         </div>
       </div>

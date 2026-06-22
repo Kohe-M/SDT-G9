@@ -48,3 +48,10 @@ export const fetchMessages = async (groupId) => {
     return [];
   }
 };
+
+// メッセージのバリデーション
+export const validateMessage = (text) => {
+  if (!text || text.trim() === "") return false;
+  if (text.length > 200) return false;
+  return true;
+};

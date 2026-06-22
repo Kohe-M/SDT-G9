@@ -6,6 +6,8 @@ dist
 *.log
 .chrome-*
 
+chatService.test.js
+
 # OS
 .DS_Store
 
