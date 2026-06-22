@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 
+
 export default function ChatPage() {
   const { groupId } = useParams();
   const navigate = useNavigate();
@@ -116,7 +117,7 @@ export default function ChatPage() {
           />
           <Button onClick={handleSend}>送信</Button>
         </div>
-      </div>
+      </div>  
     </div>
   );
 }

@@ -1,10 +1,12 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { C, Icon } from "./DesignSystem";
+import { chatsPath, homePath, profilePath, timetablePath } from "../constants/routes";
 
 const TABS = [
-  { id: "bocchi",    label: "ぼっち",       icon: "bocchi",  path: "/"          },
-  { id: "timetable", label: "時間割",        icon: "grid",    path: "/timetable" },
-  { id: "profile",   label: "プロフィール",  icon: "person",  path: "/profile"   },
+  { id: "home",      label: "ホーム",        icon: "bocchi", path: homePath()      },
+  { id: "timetable", label: "時間割",        icon: "grid",   path: timetablePath() },
+  { id: "chats",     label: "チャット",      icon: "chat",   path: chatsPath()     },
+  { id: "profile",   label: "プロフィール",  icon: "person", path: profilePath()   },
 ];
 
 // これらのパスではタブバーを非表示にする
@@ -19,8 +21,9 @@ export default function BottomTabBar() {
 
   const active = (() => {
     if (location.pathname.startsWith("/timetable")) return "timetable";
+    if (location.pathname.startsWith("/chats"))     return "chats";
     if (location.pathname.startsWith("/profile"))   return "profile";
-    return "bocchi";
+    return "home";
   })();
 
   return (
@@ -40,10 +43,11 @@ export default function BottomTabBar() {
             <button
               key={tab.id}
               onClick={() => navigate(tab.path)}
+              aria-current={on ? "page" : undefined}
               style={{
                 appearance: "none", border: "none", background: "transparent", cursor: "pointer",
                 display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-                padding: "4px 14px", flex: 1, fontFamily: "inherit",
+                padding: "4px 6px", flex: "1 1 0", minWidth: 0, minHeight: 48, fontFamily: "inherit",
               }}
             >
               <div style={{

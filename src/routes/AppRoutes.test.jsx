@@ -1,57 +1,114 @@
-/**
- * ルーティング・画面スモークテスト
- * - 実際の AppRoutesContent（ルート定義）をMemoryRouterで動かして検証する
- * - Firebase/authService をモックしてテスト環境での初期化エラーを回避する
- */
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { AppRoutesContent } from "./AppRoutes";
+import { loginUser, observeAuthState, registerUser } from "../services/authService";
 
-// Firebase の初期化をモックしてテスト環境でのエラーを防ぐ
 vi.mock("../firebase", () => ({ auth: {}, db: {} }));
 vi.mock("../services/authService", () => ({
   loginUser: vi.fn(),
   registerUser: vi.fn(),
   logoutUser: vi.fn(),
-  observeAuthState: vi.fn((cb) => { cb(null); return () => {}; }),
+  observeAuthState: vi.fn(),
 }));
 vi.mock("../services/userService", () => ({
   getUserProfile: vi.fn(() => Promise.resolve(null)),
   saveUserProfile: vi.fn(() => Promise.resolve()),
 }));
 
-afterEach(cleanup);
-beforeEach(() => localStorage.clear());
+const authUser = { uid: "user-1", email: "test@example.com" };
+let currentAuthUser = null;
+
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="location">{location.pathname}</div>;
+}
 
 function renderAt(path) {
   return render(
     <MemoryRouter initialEntries={[path]}>
+      <LocationProbe />
       <AppRoutesContent />
     </MemoryRouter>
   );
 }
 
-// ─── ルーティング ───
+function expectPath(path) {
+  expect(screen.getByTestId("location").textContent).toBe(path);
+}
 
-describe("ルーティング — 各パスが正しい画面を表示する", () => {
-  test("/ → ホーム画面が描画される", () => {
+afterEach(cleanup);
+
+beforeEach(() => {
+  localStorage.clear();
+  currentAuthUser = null;
+  vi.clearAllMocks();
+  observeAuthState.mockImplementation((callback) => {
+    callback(currentAuthUser);
+    return vi.fn();
+  });
+  loginUser.mockResolvedValue(authUser);
+  registerUser.mockResolvedValue(authUser);
+});
+
+describe("routing and auth guard", () => {
+  test("bottom tab bar shows the formal user navigation", () => {
     renderAt("/");
-    expect(document.body.textContent.length).toBeGreaterThan(0);
+
+    expect(screen.getByRole("button", { name: "ホーム" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "時間割" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "チャット" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "プロフィール" })).toBeTruthy();
   });
 
-  test("/login → ログイン画面が描画される", () => {
+  test("bottom tab links keep home, timetable, and chats routable", async () => {
+    currentAuthUser = authUser;
+    renderAt("/");
+
+    fireEvent.click(screen.getByRole("button", { name: "時間割" }));
+    expectPath("/timetable");
+
+    fireEvent.click(screen.getByRole("button", { name: "ホーム" }));
+    expectPath("/");
+
+    fireEvent.click(screen.getByRole("button", { name: "チャット" }));
+    await waitFor(() => expectPath("/chats"));
+    expect(screen.getByRole("heading", { name: "チャット" })).toBeTruthy();
+  });
+
+  test("/login shows an in-page home return button", () => {
     renderAt("/login");
-    expect(screen.getByText(/メールアドレス/)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "ホームへ戻る" }));
+
+    expectPath("/");
   });
 
-  test("/profile → 未認証時はログイン画面へリダイレクトされる", () => {
-    // observeAuthState のモックが null(未認証)を返すため /login へリダイレクトする
+  test("unauthenticated /matching/:classCode redirects to /login", async () => {
+    renderAt("/matching/TEST101");
+
+    await screen.findByPlaceholderText("you@example-univ.ac.jp");
+
+    expectPath("/login");
+  });
+
+  test("unauthenticated /chats redirects to /login", async () => {
+    renderAt("/chats");
+
+    await screen.findByPlaceholderText("you@example-univ.ac.jp");
+
+    expectPath("/login");
+  });
+
+  test("unauthenticated /profile redirects to /login", async () => {
     renderAt("/profile");
-    // ログイン画面の入力欄が表示されることを確認
-    expect(screen.getByText(/メールアドレス/)).toBeTruthy();
+
+    await screen.findByPlaceholderText("you@example-univ.ac.jp");
+
+    expectPath("/login");
   });
 
+<<<<<<< HEAD
   test("/timetable → 時間割画面が描画される", () => {
     renderAt("/timetable");
     expect(screen.getByText(/＋ 授業を追加/)).toBeTruthy();
@@ -69,39 +126,54 @@ describe("ルーティング — 各パスが正しい画面を表示する", ()
 
   test("/chat/test-group → チャット画面が描画される", () => {
     renderAt("/chat/test-group");
-    expect(document.body.textContent.length).toBeGreaterThan(0);
-  });
-});
 
-// ─── BottomTabBar の表示制御 ───
+    await screen.findByPlaceholderText("you@example-univ.ac.jp");
 
-describe("BottomTabBar — 表示・非表示の制御", () => {
-  test("/ → BottomTabBarが表示される", () => {
-    renderAt("/");
-    expect(screen.getByText("ぼっち")).toBeTruthy();
+    expectPath("/login");
   });
 
-  test("/timetable → BottomTabBarの時間割タブが表示される", () => {
-    renderAt("/timetable");
-    expect(screen.getAllByText("時間割").length).toBeGreaterThan(0);
-  });
-
-  test("/login → BottomTabBarが非表示になる", () => {
+  test("authenticated users visiting /login are replaced to /timetable", async () => {
+    currentAuthUser = authUser;
     renderAt("/login");
-    expect(screen.queryByText("ぼっち")).toBeNull();
+
+    await waitFor(() => expectPath("/timetable"));
   });
 
-  test("/chat/test-group → BottomTabBarが非表示になる", () => {
+  test("login success returns to the guarded page from location state", async () => {
+    loginUser.mockImplementation(async () => {
+      currentAuthUser = authUser;
+      return authUser;
+    });
+    const { container } = renderAt("/matching/TEST101");
+
+    await screen.findByPlaceholderText("you@example-univ.ac.jp");
+    fireEvent.change(screen.getByLabelText("メールアドレス"), {
+      target: { value: "test@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("パスワード"), {
+      target: { value: "password123" },
+    });
+    fireEvent.submit(container.querySelector("form"));
+
+    await waitFor(() => expectPath("/matching/TEST101"));
+  });
+
+  test("authenticated /chat/:groupId has a home escape path", async () => {
+    currentAuthUser = authUser;
     renderAt("/chat/test-group");
-    expect(screen.queryByText("ぼっち")).toBeNull();
+
+    await waitFor(() => expectPath("/chat/test-group"));
+    expect(screen.getByRole("link", { name: "ホームへ戻る" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "ホームへ戻る" }));
+
+    expectPath("/");
   });
-});
 
-// ─── ClassSearchPage ───
+  test("home does not expose a context-free matching shortcut", () => {
+    renderAt("/");
 
-describe("ClassSearchPage — 検索・0件表示", () => {
-  test("初期表示で0件メッセージが出ていない", () => {
-    renderAt("/classes/search");
-    expect(screen.queryByText(/該当する授業が見つかりませんでした/)).toBeNull();
+    expect(screen.queryByRole("link", { name: "マッチング" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "チャット" })).toBeNull();
   });
 });

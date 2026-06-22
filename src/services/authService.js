@@ -24,7 +24,11 @@ export const logoutUser = async () => {
 };
 
 // ログイン状態を監視する処理（誰がログインしているか取得するため）
-export const observeAuthState = (callback) => {
+export const observeAuthState = (callback, onError) => {
+  if (onError) {
+    return onAuthStateChanged(auth, callback, onError);
+  }
+
   return onAuthStateChanged(auth, callback);
 };
 
