@@ -190,32 +190,13 @@ function Cell({ cls, span, onRemove, onOpen, onOpenMatching, onAdd }) {
 
   const canOpenSyllabus = Boolean(cls.syllabusUrl);
 
-  function handleOpenCard() {
-    if (canOpenSyllabus) onOpen();
-  }
-
-  function handleCardKeyDown(e) {
-    if (!canOpenSyllabus) return;
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      onOpen();
-    }
-  }
-
   return (
     <div
-      role={canOpenSyllabus ? "button" : undefined}
-      tabIndex={canOpenSyllabus ? 0 : undefined}
-      aria-label={canOpenSyllabus ? `「${cls.name}」の授業カードを開く` : undefined}
-      onClick={handleOpenCard}
-      onKeyDown={handleCardKeyDown}
-      onMouseDown={() => canOpenSyllabus && setDown(true)}
       onMouseUp={() => setDown(false)}
       onMouseLeave={() => setDown(false)}
       style={{
         width: "100%", height: "100%", position: "relative",
         textAlign: "left", borderRadius: 14, padding: "8px 6px 7px",
-        cursor: canOpenSyllabus ? "pointer" : "default",
         background: down ? C.mauveSoft : C.card,
         border: `1.5px solid ${down ? C.mauveDeep : C.line}`,
         boxShadow: down ? "inset 0 1px 6px rgba(61,58,51,0.06)" : "none",
@@ -224,7 +205,22 @@ function Cell({ cls, span, onRemove, onOpen, onOpenMatching, onAdd }) {
         display: "flex", flexDirection: "column",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+      {canOpenSyllabus && (
+        <button
+          type="button"
+          onClick={onOpen}
+          onMouseDown={() => setDown(true)}
+          onMouseUp={() => setDown(false)}
+          onMouseLeave={() => setDown(false)}
+          aria-label={`「${cls.name}」の授業カードを開く`}
+          style={{
+            appearance: "none", border: "none", cursor: "pointer",
+            position: "absolute", inset: 0, zIndex: 1,
+            borderRadius: 14, background: "transparent", padding: 0,
+          }}
+        />
+      )}
+      <div style={{ display: "flex", alignItems: "center", gap: 5, position: "relative", zIndex: 2, pointerEvents: "none" }}>
         <span style={{ width: 16, height: 3, borderRadius: 3, background: C.mauve, display: "inline-block" }} />
         {span > 1 && (
           <span style={{
@@ -237,6 +233,7 @@ function Cell({ cls, span, onRemove, onOpen, onOpenMatching, onAdd }) {
       <div style={{
         fontSize: 11, fontWeight: 700, color: C.ink, lineHeight: 1.25,
         letterSpacing: 0.1, marginTop: 6,
+        position: "relative", zIndex: 2, pointerEvents: "none",
         display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
       }}>
         {cls.name}
@@ -244,55 +241,47 @@ function Cell({ cls, span, onRemove, onOpen, onOpenMatching, onAdd }) {
       {cls.room && (
         <div style={{
           fontSize: 9, color: C.inkSoft, fontWeight: 700, marginTop: 4,
+          position: "relative", zIndex: 2, pointerEvents: "none",
           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}>
           {cls.room}
         </div>
       )}
-      <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 3 }}>
-        {cls.syllabusUrl && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpen();
-            }}
-            aria-label={`「${cls.name}」のシラバスを開く`}
-            style={{
-              appearance: "none", border: "none", background: "transparent", cursor: "pointer",
-              padding: 0, fontSize: 8, fontWeight: 800, color: C.mauveDeep,
-              letterSpacing: -0.2, whiteSpace: "nowrap",
-            }}
-          >
-            ↗ シラバス
-          </button>
-        )}
+      {cls.syllabusUrl && (
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenMatching();
-          }}
-          aria-label={`「${cls.name}」のマッチングを探す`}
+          onClick={onOpen}
+          aria-label={`「${cls.name}」のシラバスを開く`}
           style={{
             appearance: "none", border: "none", background: "transparent", cursor: "pointer",
-            padding: 0, fontSize: 8, fontWeight: 800, color: C.sageDeep,
+            position: "relative", zIndex: 3, alignSelf: "flex-start", marginTop: "auto",
+            padding: 0, fontSize: 8, fontWeight: 800, color: C.mauveDeep,
             letterSpacing: -0.2, whiteSpace: "nowrap",
           }}
         >
-          マッチングを探す
+          ↗ シラバス
         </button>
-      </div>
+      )}
+      <button
+        type="button"
+        onClick={onOpenMatching}
+        aria-label={`「${cls.name}」のマッチングを探す`}
+        style={{
+          appearance: "none", border: "none", background: "transparent", cursor: "pointer",
+          position: "relative", zIndex: 3, alignSelf: "flex-start", marginTop: cls.syllabusUrl ? 3 : "auto",
+          padding: 0, fontSize: 8, fontWeight: 800, color: C.sageDeep,
+          letterSpacing: -0.2, whiteSpace: "nowrap",
+        }}
+      >
+        マッチングを探す
+      </button>
       <button
         type="button"
         aria-label={`「${cls.name}」を削除`}
-        onClick={(e) => {
-          e.stopPropagation();
-          onRemove();
-        }}
+        onClick={onRemove}
         style={{
           appearance: "none", border: "none",
-          position: "absolute", top: 4, right: 4, width: 18, height: 18,
+          position: "absolute", zIndex: 3, top: 4, right: 4, width: 18, height: 18,
           borderRadius: 999, cursor: "pointer",
           background: "rgba(61,58,51,0.07)",
           display: "flex", alignItems: "center", justifyContent: "center",
