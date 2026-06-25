@@ -2,9 +2,14 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { auth } from "../firebase";
 import { chatPath } from "../constants/routes";
-import { subscribeToUserGroups } from "../services/chatService";
+import {
+  archiveChat,
+  restoreChat,
+  subscribeToUserChatStates,
+  subscribeToUserGroups,
+} from "../services/chatService";
 import { Button, C, Card, ErrorMessage, PageHeader, PageShell } from "../components/DesignSystem";
-import { getClassDisplayName, getClassScheduleLabel } from "../utils/classDisplay";
+import { getClassDisplayName } from "../utils/classDisplay";
 
 function updatedAtLabel(timestamp) {
   const date = timestamp?.toDate?.();
@@ -20,32 +25,91 @@ function updatedAtLabel(timestamp) {
 export default function ChatListPage() {
   const navigate = useNavigate();
   const [groups, setGroups] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [chatStates, setChatStates] = useState({});
+  const [groupsLoading, setGroupsLoading] = useState(true);
+  const [statesLoading, setStatesLoading] = useState(true);
+  const [showArchived, setShowArchived] = useState(false);
+  const [archiveTarget, setArchiveTarget] = useState(null);
+  const [actingGroupId, setActingGroupId] = useState("");
   const [error, setError] = useState("");
+  const loading = groupsLoading || statesLoading;
+  const visibleGroups = groups.filter((group) => {
+    const archived = Boolean(chatStates[group.id]?.archivedAt);
+    return showArchived ? archived : !archived;
+  });
 
   useEffect(() => {
     const userId = auth.currentUser?.uid;
 
     if (!userId) {
-      setLoading(false);
+      setGroupsLoading(false);
+      setStatesLoading(false);
       setError("ログイン情報を取得できません。再読み込みしてください。");
       return undefined;
     }
 
-    const unsubscribe = subscribeToUserGroups({
+    const unsubscribeGroups = subscribeToUserGroups({
       userId,
       onGroups: (nextGroups) => {
         setGroups(nextGroups);
-        setLoading(false);
+        setGroupsLoading(false);
       },
       onError: (subscribeError) => {
         setError(subscribeError.message || "チャット一覧を取得できませんでした。");
-        setLoading(false);
+        setGroupsLoading(false);
       },
     });
 
-    return () => unsubscribe();
+    const unsubscribeStates = subscribeToUserChatStates({
+      userId,
+      onStates: (nextStates) => {
+        setChatStates(nextStates);
+        setStatesLoading(false);
+      },
+      onError: (subscribeError) => {
+        setError(subscribeError.message || "チャット状態を取得できませんでした。");
+        setStatesLoading(false);
+      },
+    });
+
+    return () => {
+      unsubscribeGroups();
+      unsubscribeStates();
+    };
   }, []);
+
+  const handleArchive = async () => {
+    const userId = auth.currentUser?.uid;
+    if (!userId || !archiveTarget) return;
+
+    setActingGroupId(archiveTarget.id);
+    setError("");
+
+    try {
+      await archiveChat({ userId, groupId: archiveTarget.id });
+      setArchiveTarget(null);
+    } catch (archiveError) {
+      setError(archiveError.message || "チャットを非表示にできませんでした。");
+    } finally {
+      setActingGroupId("");
+    }
+  };
+
+  const handleRestore = async (groupId) => {
+    const userId = auth.currentUser?.uid;
+    if (!userId) return;
+
+    setActingGroupId(groupId);
+    setError("");
+
+    try {
+      await restoreChat({ userId, groupId });
+    } catch (restoreError) {
+      setError(restoreError.message || "チャットを通常一覧へ戻せませんでした。");
+    } finally {
+      setActingGroupId("");
+    }
+  };
 
   return (
     <PageShell>
@@ -58,20 +122,41 @@ export default function ChatListPage() {
 
       {loading && <p style={{ color: C.inkSoft }}>読み込み中...</p>}
 
-      {!loading && !error && groups.length === 0 && (
+      {!loading && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+          <Button
+            type="button"
+            size="sm"
+            variant={!showArchived ? "primary" : "secondary"}
+            onClick={() => setShowArchived(false)}
+          >
+            通常
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant={showArchived ? "primary" : "secondary"}
+            onClick={() => setShowArchived(true)}
+          >
+            アーカイブ済み
+          </Button>
+        </div>
+      )}
+
+      {!loading && !error && visibleGroups.length === 0 && (
         <Card>
           <p style={{ margin: 0, color: C.inkSoft }}>
-            参加中のチャットはまだありません。
+            {showArchived
+              ? "アーカイブ済みのチャットはありません。"
+              : "参加中のチャットはまだありません。"}
           </p>
         </Card>
       )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {groups.map((group) => {
-          const classSchedule = getClassScheduleLabel(group.classCode);
-
-          return (
-            <Card key={group.id} style={{ padding: 16 }}>
+        {visibleGroups.map((group) => (
+          <Card key={group.id} style={{ padding: 16 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <button
                 type="button"
                 onClick={() => navigate(chatPath({ groupId: group.id }))}
@@ -99,11 +184,6 @@ export default function ChatListPage() {
                     {updatedAtLabel(group.updatedAt ?? group.lastMessageAt)}
                   </span>
                 </div>
-                {classSchedule && (
-                  <p style={{ margin: "4px 0 0", fontSize: 12.5, color: C.inkFaint }}>
-                    {classSchedule}
-                  </p>
-                )}
                 <p style={{
                   margin: "8px 0 0",
                   color: group.lastMessageText ? C.inkSoft : C.inkFaint,
@@ -114,9 +194,65 @@ export default function ChatListPage() {
                   {group.lastMessageText || "まだメッセージはありません。"}
                 </p>
               </button>
-            </Card>
-          );
-        })}
+
+              {showArchived ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={actingGroupId === group.id}
+                  onClick={() => handleRestore(group.id)}
+                  style={{ alignSelf: "flex-start" }}
+                >
+                  通常一覧へ戻す
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  disabled={actingGroupId === group.id}
+                  onClick={() => setArchiveTarget(group)}
+                  style={{ alignSelf: "flex-start" }}
+                >
+                  チャットを終了して一覧から非表示
+                </Button>
+              )}
+
+              {archiveTarget?.id === group.id && (
+                <div style={{
+                  padding: 14,
+                  borderRadius: 12,
+                  background: C.errorSoft,
+                  border: `1.5px solid ${C.error}55`,
+                }}>
+                  <p style={{ margin: "0 0 10px", color: C.ink }}>
+                    このチャットを通常一覧から非表示にします。グループとメッセージは削除されず、相手の一覧にも影響しません。
+                  </p>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <Button
+                      type="button"
+                      variant="danger"
+                      size="sm"
+                      loading={actingGroupId === group.id}
+                      onClick={handleArchive}
+                    >
+                      非表示にする
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setArchiveTarget(null)}
+                    >
+                      キャンセル
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
+        ))}
       </div>
 
       {error && (

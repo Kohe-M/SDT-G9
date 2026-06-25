@@ -17,11 +17,17 @@ vi.mock("../services/userService", () => ({
   saveUserProfile: vi.fn(() => Promise.resolve()),
 }));
 vi.mock("../services/chatService", () => ({
+  archiveChat: vi.fn(() => Promise.resolve()),
+  restoreChat: vi.fn(() => Promise.resolve()),
   subscribeToGroup: vi.fn(({ onGroup }) => {
     onGroup({ id: "test-group", classCode: "53382", members: ["user-1", "user-2"] });
     return vi.fn();
   }),
   subscribeToMessages: vi.fn(() => vi.fn()),
+  subscribeToUserChatStates: vi.fn(({ onStates }) => {
+    onStates({});
+    return vi.fn();
+  }),
   subscribeToUserGroups: vi.fn(({ onGroups }) => {
     onGroups([]);
     return vi.fn();
