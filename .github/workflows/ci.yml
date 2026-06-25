@@ -29,5 +29,8 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Check cyclomatic complexity
+        run: npm run quality:complexity
+
       - name: Build
         run: npm run build
