@@ -3,7 +3,6 @@ import {
   deleteDoc,
   doc,
   getDoc,
-  getDocs,
   onSnapshot,
   query,
   runTransaction,
@@ -27,15 +26,41 @@ function encodeGroupIdPart(value) {
   return encodeURIComponent(requireValue(value, "groupId part"));
 }
 
-export function buildGroupId({ userId, partnerId, classCode }) {
-  const members = [
-    requireValue(userId, "userId"),
-    requireValue(partnerId, "partnerId"),
-  ].sort();
+function createRequestId() {
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function sortedMemberRequests({ userId, userRequestId, partnerId, partnerRequestId }) {
+  return [
+    {
+      userId: requireValue(userId, "userId"),
+      requestId: requireValue(userRequestId, "userRequestId"),
+    },
+    {
+      userId: requireValue(partnerId, "partnerId"),
+      requestId: requireValue(partnerRequestId, "partnerRequestId"),
+    },
+  ].sort((a, b) => a.userId.localeCompare(b.userId));
+}
+
+export function buildGroupId({ userId, userRequestId, partnerId, partnerRequestId, classCode }) {
+  const memberRequests = sortedMemberRequests({
+    userId,
+    userRequestId,
+    partnerId,
+    partnerRequestId,
+  });
 
   return [
     encodeGroupIdPart(classCode),
-    ...members.map(encodeGroupIdPart),
+    ...memberRequests.flatMap(({ userId: memberId, requestId }) => [
+      encodeGroupIdPart(memberId),
+      encodeGroupIdPart(requestId),
+    ]),
   ].join("__");
 }
 
@@ -48,19 +73,33 @@ export async function startMatching({ userId, classCode }) {
   if (currentQueue.exists()) {
     const currentData = currentQueue.data();
     if (currentData.classCode === targetClassCode) {
-      return { status: "waiting", reused: true };
+      if (currentData.requestId) {
+        return { status: "waiting", reused: true, requestId: currentData.requestId };
+      }
+
+      const requestId = createRequestId();
+      await setDoc(queueRef, {
+        userId: uid,
+        classCode: targetClassCode,
+        requestId,
+        createdAt: serverTimestamp(),
+      });
+
+      return { status: "waiting", reused: false, replacedLegacy: true, requestId };
     }
 
     throw new Error("別の授業でマッチング待機中です。先に待機をキャンセルしてください。");
   }
 
+  const requestId = createRequestId();
   await setDoc(queueRef, {
     userId: uid,
     classCode: targetClassCode,
+    requestId,
     createdAt: serverTimestamp(),
   });
 
-  return { status: "waiting", reused: false };
+  return { status: "waiting", reused: false, requestId };
 }
 
 export async function cancelMatching({ userId }) {
@@ -68,26 +107,10 @@ export async function cancelMatching({ userId }) {
   await deleteDoc(doc(db, QUEUE_COLLECTION, uid));
 }
 
-export async function getExistingGroupId({ userId, classCode }) {
+export function subscribeUserClassGroups({ userId, classCode, requestId, onMatched, onError }) {
   const uid = requireValue(userId, "userId");
   const targetClassCode = requireValue(classCode, "classCode");
-  const groupsQuery = query(
-    collection(db, GROUP_COLLECTION),
-    where("members", "array-contains", uid),
-    where("classCode", "==", targetClassCode)
-  );
-  const snapshot = await getDocs(groupsQuery);
-  const existingGroup = snapshot.docs.find((groupDoc) => {
-    const data = groupDoc.data();
-    return data.classCode === targetClassCode && data.members?.includes(uid);
-  });
-
-  return existingGroup?.id ?? null;
-}
-
-export function subscribeUserClassGroups({ userId, classCode, onMatched, onError }) {
-  const uid = requireValue(userId, "userId");
-  const targetClassCode = requireValue(classCode, "classCode");
+  const activeRequestId = requireValue(requestId, "requestId");
   const groupsQuery = query(
     collection(db, GROUP_COLLECTION),
     where("members", "array-contains", uid),
@@ -99,7 +122,12 @@ export function subscribeUserClassGroups({ userId, classCode, onMatched, onError
     (snapshot) => {
       const matchingGroup = snapshot.docs.find((groupDoc) => {
         const data = groupDoc.data();
-        return data.classCode === targetClassCode && data.members?.includes(uid);
+        return (
+          data.classCode === targetClassCode &&
+          data.members?.includes(uid) &&
+          Array.isArray(data.matchRequestIds) &&
+          data.matchRequestIds.includes(activeRequestId)
+        );
       });
 
       if (matchingGroup) {
@@ -121,21 +149,14 @@ export async function tryCreateGroup({ userId, partnerId, classCode }) {
     return null;
   }
 
-  const groupId = buildGroupId({ userId: uid, partnerId: partnerUid, classCode: targetClassCode });
   const userQueueRef = doc(db, QUEUE_COLLECTION, uid);
   const partnerQueueRef = doc(db, QUEUE_COLLECTION, partnerUid);
-  const groupRef = doc(db, GROUP_COLLECTION, groupId);
 
   return runTransaction(db, async (transaction) => {
-    const [userQueue, partnerQueue, groupSnapshot] = await Promise.all([
+    const [userQueue, partnerQueue] = await Promise.all([
       transaction.get(userQueueRef),
       transaction.get(partnerQueueRef),
-      transaction.get(groupRef),
     ]);
-
-    if (groupSnapshot.exists()) {
-      return groupId;
-    }
 
     const userQueueData = userQueue.data();
     const partnerQueueData = partnerQueue.data();
@@ -149,10 +170,36 @@ export async function tryCreateGroup({ userId, partnerId, classCode }) {
       return null;
     }
 
-    const members = [uid, partnerUid].sort();
+    if (!userQueueData.requestId || !partnerQueueData.requestId) {
+      return null;
+    }
+
+    const memberRequests = sortedMemberRequests({
+      userId: uid,
+      userRequestId: userQueueData.requestId,
+      partnerId: partnerUid,
+      partnerRequestId: partnerQueueData.requestId,
+    });
+    const groupId = buildGroupId({
+      userId: uid,
+      userRequestId: userQueueData.requestId,
+      partnerId: partnerUid,
+      partnerRequestId: partnerQueueData.requestId,
+      classCode: targetClassCode,
+    });
+    const groupRef = doc(db, GROUP_COLLECTION, groupId);
+    const groupSnapshot = await transaction.get(groupRef);
+
+    if (groupSnapshot.exists()) {
+      return groupId;
+    }
+
+    const members = memberRequests.map(({ userId: memberId }) => memberId);
+    const matchRequestIds = memberRequests.map(({ requestId }) => requestId);
     transaction.set(groupRef, {
       classCode: targetClassCode,
       members,
+      matchRequestIds,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       lastMessageAt: null,
@@ -180,7 +227,7 @@ export function subscribeMatchingCandidates({ userId, classCode, onMatched, onEr
 
       const partner = snapshot.docs
         .map((queueDoc) => ({ id: queueDoc.id, ...queueDoc.data() }))
-        .find((candidate) => candidate.userId !== uid);
+        .find((candidate) => candidate.userId !== uid && candidate.requestId);
 
       if (!partner) return;
 
