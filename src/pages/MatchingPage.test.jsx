@@ -25,13 +25,14 @@ function LocationProbe() {
   return <div data-testid="location">{location.pathname}</div>;
 }
 
-function renderPage() {
+function renderPage(path = "/matching/53382") {
   return render(
-    <MemoryRouter initialEntries={["/matching/TEST101"]}>
+    <MemoryRouter initialEntries={[path]}>
       <LocationProbe />
       <Routes>
         <Route path="/matching/:classCode" element={<MatchingPage />} />
         <Route path="/chat/:groupId" element={<div>chat detail</div>} />
+        <Route path="/timetable" element={<div>timetable page</div>} />
       </Routes>
     </MemoryRouter>
   );
@@ -49,6 +50,13 @@ beforeEach(() => {
 });
 
 describe("MatchingPage", () => {
+  test("shows the class name and class code for a valid class", () => {
+    renderPage();
+
+    expect(screen.getByText("ソフトウェア開発論")).toBeTruthy();
+    expect(screen.getByText("授業コード: 53382")).toBeTruthy();
+  });
+
   test("disables the start button while waiting", async () => {
     renderPage();
     const startButton = screen.getByRole("button", { name: "マッチング開始" });
@@ -183,5 +191,26 @@ describe("MatchingPage", () => {
     expect(cancelMatching).not.toHaveBeenCalledWith({ userId: "user-2" });
     expect(queueUnsubscribe).toHaveBeenCalledTimes(1);
     expect(groupUnsubscribe).toHaveBeenCalledTimes(1);
+  });
+
+  test("does not start matching for an unknown class code", () => {
+    renderPage("/matching/UNKNOWN999");
+
+    expect(screen.getByText("UNKNOWN999")).toBeTruthy();
+    expect(screen.getByText("授業コード: UNKNOWN999")).toBeTruthy();
+    expect(screen.getByRole("alert").textContent).toContain("授業データに存在しない授業コードです");
+    expect(screen.getByRole("button", { name: "マッチング開始" }).disabled).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "マッチング開始" }));
+
+    expect(startMatching).not.toHaveBeenCalled();
+  });
+
+  test("unknown class codes can return to the timetable", () => {
+    renderPage("/matching/UNKNOWN999");
+
+    fireEvent.click(screen.getByRole("button", { name: "時間割へ戻る" }));
+
+    expect(screen.getByTestId("location").textContent).toBe("/timetable");
   });
 });

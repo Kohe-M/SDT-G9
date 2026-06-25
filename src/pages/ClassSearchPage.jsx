@@ -104,24 +104,25 @@ export default function ClassSearchPage() {
                 transition: "border-color .15s ease",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                <div style={{ flex: "1 1 180px", minWidth: 0 }}>
                   <div style={{ fontSize: 15, fontWeight: 700, color: C.ink, lineHeight: 1.3 }}>{item.name}</div>
                   <div style={{ fontSize: 12, color: C.inkFaint, marginTop: 3, fontWeight: 500 }}>
                     {item.code}
                     {item.room && ` ・ ${item.room}`}
                   </div>
                 </div>
-                <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                <div style={{ display: "flex", gap: 8, flex: "1 1 220px", justifyContent: "flex-end", flexWrap: "wrap" }}>
                   <button
                     onClick={() => handleOpenMatching(item)}
                     aria-label={`「${item.name}」のマッチングを探す`}
                     style={{
                       appearance: "none", cursor: "pointer",
                       background: C.sageSoft, color: C.sageDeep,
-                      border: `1px solid ${C.sage}`, borderRadius: 999,
-                      padding: "6px 10px", fontSize: 12, fontWeight: 700,
-                      whiteSpace: "nowrap",
+                      border: `1.5px solid ${C.sage}`, borderRadius: 12,
+                      padding: "10px 14px", minHeight: 44,
+                      fontSize: 13, fontWeight: 800,
+                      whiteSpace: "nowrap", flex: "1 1 150px",
                     }}
                   >
                     マッチングを探す
@@ -134,7 +135,8 @@ export default function ClassSearchPage() {
                       style={{
                         display: "inline-flex", alignItems: "center",
                         fontSize: 12, color: C.mauveDeep, fontWeight: 600, textDecoration: "none",
-                        background: C.mauveSoft, padding: "6px 10px", borderRadius: 999,
+                        background: C.mauveSoft, padding: "10px 12px", borderRadius: 12,
+                        minHeight: 44, boxSizing: "border-box",
                         whiteSpace: "nowrap",
                       }}
                     >
@@ -155,8 +157,9 @@ export default function ClassSearchPage() {
                       appearance: "none", cursor: "pointer",
                       background: isOpen ? C.line : C.mauve,
                       color: isOpen ? C.inkSoft : "#fff",
-                      border: "none", borderRadius: 999,
-                      padding: "6px 14px", fontSize: 12.5, fontWeight: 700,
+                      border: "none", borderRadius: 12,
+                      padding: "10px 14px", minHeight: 44,
+                      fontSize: 12.5, fontWeight: 700,
                       whiteSpace: "nowrap", transition: "all .15s ease",
                     }}
                   >
