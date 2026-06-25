@@ -47,6 +47,7 @@ http://localhost:5173/chat/test-group
 
 ```bash
 npm test
+npm run quality:complexity
 npm run build
 ```
 

@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "quality:complexity": "eslint \"src/services/**/*.js\" \"src/utils/**/*.js\" \"src/constants/routes.js\""
   },
   "dependencies": {
     "firebase": "^12.0.0",
@@ -20,6 +21,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@vitejs/plugin-react": "^5.0.0",
+    "eslint": "^10.5.0",
     "jsdom": "^29.1.1",
     "vite": "^7.0.0",
     "vitest": "^4.1.9"

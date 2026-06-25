@@ -6,6 +6,7 @@ import {
   subscribeToGroup,
   subscribeToMessages,
   subscribeToUserChatStates,
+  subscribeToUserGroups,
   validateMessage,
 } from "./chatService";
 import { deleteDoc, onSnapshot, setDoc, writeBatch } from "firebase/firestore";
@@ -241,6 +242,61 @@ describe("subscribeToUserChatStates", () => {
         archivedAt: "server-time",
       },
     });
+  });
+});
+
+describe("subscribeToUserGroups", () => {
+  test("passes groups sorted by recent activity", () => {
+    const onGroups = vi.fn();
+    onSnapshot.mockImplementationOnce((_query, next) => {
+      next({
+        docs: [
+          {
+            id: "older-group",
+            data: () => ({
+              classCode: "OLD101",
+              lastMessageAt: { toMillis: () => 100 },
+            }),
+          },
+          {
+            id: "newer-group",
+            data: () => ({
+              classCode: "NEW101",
+              updatedAt: { toMillis: () => 300 },
+              lastMessageAt: { toMillis: () => 200 },
+            }),
+          },
+        ],
+      });
+      return vi.fn();
+    });
+
+    subscribeToUserGroups({
+      userId: "user-1",
+      onGroups,
+      onError: vi.fn(),
+    });
+
+    expect(onGroups).toHaveBeenCalledWith([
+      expect.objectContaining({ id: "newer-group", classCode: "NEW101" }),
+      expect.objectContaining({ id: "older-group", classCode: "OLD101" }),
+    ]);
+  });
+
+  test("passes Firestore errors to onError", () => {
+    const onError = vi.fn();
+    onSnapshot.mockImplementationOnce((_query, _next, errorHandler) => {
+      errorHandler(new Error("permission denied"));
+      return vi.fn();
+    });
+
+    subscribeToUserGroups({
+      userId: "user-1",
+      onGroups: vi.fn(),
+      onError,
+    });
+
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: "permission denied" }));
   });
 });
 

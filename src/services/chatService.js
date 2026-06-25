@@ -155,6 +155,21 @@ export async function sendMessage({ groupId, senderId, text }) {
   return messageRef.id;
 }
 
+function toGroup(groupDoc) {
+  return {
+    id: groupDoc.id,
+    ...groupDoc.data(),
+  };
+}
+
+function getGroupActivityTime(group) {
+  return group.updatedAt?.toMillis?.() ?? group.lastMessageAt?.toMillis?.() ?? 0;
+}
+
+function compareGroupsByRecentActivity(a, b) {
+  return getGroupActivityTime(b) - getGroupActivityTime(a);
+}
+
 export function subscribeToUserGroups({ userId, onGroups, onError }) {
   const uid = requireValue(userId, "userId");
   const groupsQuery = query(
@@ -166,15 +181,8 @@ export function subscribeToUserGroups({ userId, onGroups, onError }) {
     groupsQuery,
     (snapshot) => {
       const groups = snapshot.docs
-        .map((groupDoc) => ({
-          id: groupDoc.id,
-          ...groupDoc.data(),
-        }))
-        .sort((a, b) => {
-          const aTime = a.updatedAt?.toMillis?.() ?? a.lastMessageAt?.toMillis?.() ?? 0;
-          const bTime = b.updatedAt?.toMillis?.() ?? b.lastMessageAt?.toMillis?.() ?? 0;
-          return bTime - aTime;
-        });
+        .map(toGroup)
+        .sort(compareGroupsByRecentActivity);
 
       onGroups(groups);
     },
