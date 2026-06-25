@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { auth } from "../firebase";
-import { chatPath } from "../constants/routes";
+import { chatPath, timetablePath } from "../constants/routes";
+import { getClassByCode } from "../services/classService";
 import {
   cancelMatching,
   getExistingGroupId,
@@ -30,6 +31,9 @@ const STATUS_TEXT = {
 export default function MatchingPage() {
   const { classCode } = useParams();
   const navigate = useNavigate();
+  const classInfo = getClassByCode(classCode);
+  const className = classInfo?.name || classCode;
+  const missingClassMessage = classInfo ? "" : "授業データに存在しない授業コードです。時間割または授業検索から授業を選び直してください。";
   const [status, setStatus] = useState("idle");
   const [error, setError] = useState("");
   const queueUnsubscribeRef = useRef(null);
@@ -92,6 +96,12 @@ export default function MatchingPage() {
 
     const userId = auth.currentUser?.uid;
     setError("");
+
+    if (!classInfo) {
+      setStatus("error");
+      setError(missingClassMessage);
+      return;
+    }
 
     if (!userId) {
       setStatus("error");
@@ -185,6 +195,7 @@ export default function MatchingPage() {
   };
 
   const isWaiting = status === "registering" || status === "waiting" || status === "canceling";
+  const cannotStart = isWaiting || !classInfo;
 
   return (
     <PageShell>
@@ -194,15 +205,33 @@ export default function MatchingPage() {
       />
 
       <Card>
-        <ErrorMessage message={error} />
+        <ErrorMessage message={missingClassMessage || error} />
         <SuccessMessage message={status === "matched" ? STATUS_TEXT.matched : ""} />
 
-        <p style={{ margin: "0 0 12px" }}>対象授業コード: {classCode}</p>
+        <div style={{ margin: "0 0 16px" }}>
+          <p style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 800, color: "#3D3A33", lineHeight: 1.35 }}>
+            {className}
+          </p>
+          <p style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: "#6F6A5F" }}>
+            授業コード: {classCode}
+          </p>
+        </div>
         <p style={{ margin: "0 0 18px" }}>状態: {STATUS_TEXT[status]}</p>
 
-        <Button fullWidth onClick={handleStart} disabled={isWaiting}>
+        <Button fullWidth onClick={handleStart} disabled={cannotStart}>
           マッチング開始
         </Button>
+
+        {!classInfo && (
+          <Button
+            fullWidth
+            variant="secondary"
+            onClick={() => navigate(timetablePath())}
+            style={{ marginTop: 12 }}
+          >
+            時間割へ戻る
+          </Button>
+        )}
 
         {status === "waiting" && (
           <Button

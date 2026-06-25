@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   getMyClasses,
   removeClassFromTimetable,
@@ -6,6 +7,7 @@ import {
   addClassToTimetable as addToStorage,
 } from "../services/classService";
 import { C } from "../components/DesignSystem";
+import { matchingPath } from "../constants/routes";
 
 const DAYS = ["月", "火", "水", "木", "金"];
 const PERIODS = [
@@ -35,8 +37,10 @@ function buildOccupied(map) {
 }
 
 export default function TimetablePage() {
+  const navigate = useNavigate();
   const [myClasses, setMyClasses] = useState([]);
   const [sheet, setSheet] = useState(null);
+  const [detailClass, setDetailClass] = useState(null);
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
@@ -49,6 +53,7 @@ export default function TimetablePage() {
   function handleRemove(code) {
     removeClassFromTimetable(code);
     setMyClasses(getMyClasses());
+    setDetailClass(null);
   }
 
   function handleAdd(dayIndex, period, span, found) {
@@ -132,8 +137,7 @@ export default function TimetablePage() {
                 <Cell
                   cls={cls}
                   span={span}
-                  onRemove={() => cls && handleRemove(cls.code)}
-                  onOpen={() => cls?.syllabusUrl && window.open(cls.syllabusUrl, "_blank", "noopener")}
+                  onOpenDetail={() => cls && setDetailClass(cls)}
                   onAdd={() => setSheet({ dayIndex: di, period: p.n })}
                 />
               </div>
@@ -145,7 +149,7 @@ export default function TimetablePage() {
       <div style={{ display: "flex", gap: 14, marginTop: 12, padding: "0 2px" }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 11, color: C.inkFaint, fontWeight: 500 }}>
           <span style={{ width: 9, height: 9, borderRadius: 3, background: C.mauve, display: "inline-block" }} />
-          タップでシラバスを開く
+          タップで授業詳細を開く
         </span>
       </div>
 
@@ -159,12 +163,26 @@ export default function TimetablePage() {
         />
       )}
 
+      {detailClass && (
+        <ClassDetailSheet
+          cls={detailClass}
+          onClose={() => setDetailClass(null)}
+          onOpenSyllabus={() => {
+            if (detailClass.syllabusUrl) {
+              window.open(detailClass.syllabusUrl, "_blank", "noopener");
+            }
+          }}
+          onOpenMatching={() => navigate(matchingPath({ classCode: detailClass.code }))}
+          onRemove={() => handleRemove(detailClass.code)}
+        />
+      )}
+
       {toast && <Toast text={toast} />}
     </div>
   );
 }
 
-function Cell({ cls, span, onRemove, onOpen, onAdd }) {
+function Cell({ cls, span, onOpenDetail, onAdd }) {
   const [down, setDown] = useState(false);
 
   if (!cls) {
@@ -186,7 +204,9 @@ function Cell({ cls, span, onRemove, onOpen, onAdd }) {
 
   return (
     <button
-      onClick={onOpen}
+      type="button"
+      onClick={onOpenDetail}
+      aria-label={`「${cls.name}」の詳細を開く`}
       onMouseDown={() => setDown(true)}
       onMouseUp={() => setDown(false)}
       onMouseLeave={() => setDown(false)}
@@ -228,26 +248,110 @@ function Cell({ cls, span, onRemove, onOpen, onAdd }) {
       )}
       <span style={{
         marginTop: "auto", alignSelf: "flex-start",
-        fontSize: 8, fontWeight: 800, color: C.mauveDeep,
-        letterSpacing: -0.2, whiteSpace: "nowrap",
+        fontSize: 8.5, fontWeight: 800, color: C.mauveDeep,
+        letterSpacing: 0, whiteSpace: "nowrap",
       }}>
-        ↗ シラバス
-      </span>
-      <span
-        role="button"
-        aria-label="削除"
-        onClick={(e) => { e.stopPropagation(); onRemove(); }}
-        style={{
-          position: "absolute", top: 4, right: 4, width: 18, height: 18,
-          borderRadius: 999, cursor: "pointer",
-          background: "rgba(61,58,51,0.07)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 12, color: C.inkSoft, lineHeight: 1,
-        }}
-      >
-        ×
+        詳細
       </span>
     </button>
+  );
+}
+
+function ClassDetailSheet({ cls, onClose, onOpenSyllabus, onOpenMatching, onRemove }) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`「${cls.name}」の授業詳細`}
+      style={{
+        position: "fixed", inset: 0, zIndex: 95,
+        background: "rgba(45,42,36,0.34)", backdropFilter: "blur(3px)",
+        display: "flex", alignItems: "flex-end", justifyContent: "center",
+      }}
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "100%", maxWidth: 640,
+          background: C.bg, borderRadius: "28px 28px 0 0",
+          padding: "12px 20px 40px",
+          boxShadow: "0 -20px 50px -20px rgba(0,0,0,0.4)",
+        }}
+      >
+        <div style={{ width: 40, height: 5, borderRadius: 999, background: C.line, margin: "0 auto 16px" }} />
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 18 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 19, fontWeight: 800, color: C.ink, lineHeight: 1.3 }}>{cls.name}</div>
+            <div style={{ fontSize: 12.5, color: C.inkFaint, marginTop: 5, fontWeight: 600 }}>
+              {cls.code}
+              {cls.room && ` ・ ${cls.room}`}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="閉じる"
+            style={{
+              width: 34, height: 34, borderRadius: 999, border: "none", cursor: "pointer",
+              background: "rgba(61,58,51,0.06)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 18, color: C.inkSoft, flexShrink: 0,
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={onOpenMatching}
+          aria-label={`「${cls.name}」のマッチングを探す`}
+          style={{
+            width: "100%", appearance: "none", border: "none", cursor: "pointer",
+            background: C.sage, color: "#fff", borderRadius: 16,
+            padding: "16px 18px", minHeight: 52,
+            fontSize: 16, fontWeight: 800, letterSpacing: 0,
+            boxShadow: `0 10px 24px -10px ${C.sage}`,
+          }}
+        >
+          この授業で相手を探す
+        </button>
+
+        <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+          {cls.syllabusUrl && (
+            <button
+              type="button"
+              onClick={onOpenSyllabus}
+              aria-label={`「${cls.name}」のシラバスを開く`}
+              style={{
+                flex: "1 1 150px", appearance: "none", cursor: "pointer",
+                background: C.mauveSoft, color: C.mauveDeep,
+                border: `1.5px solid ${C.line}`, borderRadius: 14,
+                padding: "13px 14px", minHeight: 48,
+                fontSize: 14, fontWeight: 800,
+              }}
+            >
+              シラバスを開く
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onRemove}
+            aria-label={`「${cls.name}」を削除`}
+            style={{
+              flex: "1 1 120px", appearance: "none", cursor: "pointer",
+              background: "#F4E8E5", color: "#9C5B5B",
+              border: "1.5px solid #E7D2CD", borderRadius: 14,
+              padding: "13px 14px", minHeight: 48,
+              fontSize: 14, fontWeight: 800,
+            }}
+          >
+            削除
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

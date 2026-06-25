@@ -1,8 +1,9 @@
 import { cleanup, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import ClassSearchPage from "./ClassSearchPage";
 import * as classService from "../services/classService";
+import { matchingPath } from "../constants/routes";
 
 afterEach(cleanup);
 beforeEach(() => localStorage.clear());
@@ -11,8 +12,14 @@ function renderPage() {
   return render(
     <MemoryRouter>
       <ClassSearchPage />
+      <LocationProbe />
     </MemoryRouter>
   );
+}
+
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="pathname">{location.pathname}</div>;
 }
 
 function searchAndOpenPanel(keyword = "英語") {
@@ -85,5 +92,18 @@ describe("ClassSearchPage — 検索結果0件", () => {
     fireEvent.change(input, { target: { value: "zzz絶対に存在しない授業名zzz" } });
     fireEvent.submit(input.closest("form"));
     expect(screen.getByText(/該当する授業が見つかりませんでした/)).toBeTruthy();
+  });
+});
+
+describe("ClassSearchPage — マッチング導線", () => {
+  test("検索結果のマッチング操作から対象授業のマッチング画面へ遷移する", () => {
+    renderPage();
+    const input = screen.getByPlaceholderText("授業名・授業コードで検索");
+    fireEvent.change(input, { target: { value: "15214" } });
+    fireEvent.submit(input.closest("form"));
+
+    fireEvent.click(screen.getByRole("button", { name: "「Modern World History」のマッチングを探す" }));
+
+    expect(screen.getByTestId("pathname").textContent).toBe(matchingPath({ classCode: "15214" }));
   });
 });
