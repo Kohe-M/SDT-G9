@@ -62,6 +62,29 @@ export function subscribeToMessages({ groupId, onMessages, onError }) {
   );
 }
 
+export function subscribeToGroup({ groupId, onGroup, onError }) {
+  const targetGroupId = requireValue(groupId, "groupId");
+  const groupRef = doc(db, "groups", targetGroupId);
+
+  return onSnapshot(
+    groupRef,
+    (snapshot) => {
+      if (!snapshot.exists()) {
+        onGroup(null);
+        return;
+      }
+
+      onGroup({
+        id: snapshot.id,
+        ...snapshot.data(),
+      });
+    },
+    (error) => {
+      onError?.(error);
+    }
+  );
+}
+
 export async function sendMessage({ groupId, senderId, text }) {
   const targetGroupId = requireValue(groupId, "groupId");
   const uid = requireValue(senderId, "senderId");
