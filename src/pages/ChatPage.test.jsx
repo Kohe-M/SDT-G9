@@ -3,10 +3,11 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import ChatPage from "./ChatPage";
 import { auth } from "../firebase";
-import { sendMessage, subscribeToMessages } from "../services/chatService";
+import { sendMessage, subscribeToGroup, subscribeToMessages } from "../services/chatService";
 
 vi.mock("../firebase", () => ({ auth: { currentUser: { uid: "user-1" } } }));
 vi.mock("../services/chatService", () => ({
+  subscribeToGroup: vi.fn(),
   subscribeToMessages: vi.fn(),
   sendMessage: vi.fn(),
   validateMessage: vi.fn((text) => {
@@ -37,6 +38,10 @@ afterEach(cleanup);
 beforeEach(() => {
   vi.clearAllMocks();
   auth.currentUser = { uid: "user-1" };
+  subscribeToGroup.mockImplementation(({ onGroup }) => {
+    onGroup({ id: "group-1", classCode: "53382", members: ["user-1", "user-2"] });
+    return vi.fn();
+  });
   subscribeToMessages.mockImplementation(({ onMessages }) => {
     onMessages([]);
     return vi.fn();
@@ -45,6 +50,47 @@ beforeEach(() => {
 });
 
 describe("ChatPage", () => {
+  test("shows the class name and code in the header", async () => {
+    renderPage();
+
+    expect(await screen.findByText("ソフトウェア開発論（53382）")).toBeTruthy();
+  });
+
+  test("falls back when class data is missing", async () => {
+    subscribeToGroup.mockImplementationOnce(({ onGroup }) => {
+      onGroup({ id: "group-1", classCode: "99999", members: ["user-1", "user-2"] });
+      return vi.fn();
+    });
+
+    renderPage();
+
+    expect(await screen.findByText("授業コード: 99999")).toBeTruthy();
+  });
+
+  test("shows an error when the group subscription fails", async () => {
+    subscribeToGroup.mockImplementationOnce(({ onError }) => {
+      onError(new Error("permission denied"));
+      return vi.fn();
+    });
+
+    renderPage();
+
+    expect(await screen.findByText("permission denied")).toBeTruthy();
+  });
+
+  test("shows an error when the target group does not exist", async () => {
+    subscribeToGroup.mockImplementationOnce(({ onGroup }) => {
+      onGroup(null);
+      return vi.fn();
+    });
+
+    renderPage();
+
+    expect(await screen.findByText("対象のチャットが見つかりません。")).toBeTruthy();
+    expect(screen.getByPlaceholderText("メッセージ").disabled).toBe(true);
+    expect(screen.getByRole("button", { name: "送信" }).disabled).toBe(true);
+  });
+
   test("clears the input after a successful send", async () => {
     renderPage();
     const input = screen.getByPlaceholderText("メッセージ");

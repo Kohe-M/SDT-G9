@@ -2,8 +2,14 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { auth } from "../firebase";
 import { chatsPath } from "../constants/routes";
-import { sendMessage, subscribeToMessages, validateMessage } from "../services/chatService";
+import {
+  sendMessage,
+  subscribeToGroup,
+  subscribeToMessages,
+  validateMessage,
+} from "../services/chatService";
 import { Button, C, ErrorMessage, TextField } from "../components/DesignSystem";
+import { getClassDisplayName, getClassScheduleLabel } from "../utils/classDisplay";
 
 function timestampLabel(timestamp) {
   const date = timestamp?.toDate?.();
@@ -20,26 +26,55 @@ export default function ChatPage() {
   const { groupId } = useParams();
   const navigate = useNavigate();
   const [text, setText] = useState("");
+  const [group, setGroup] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [messagesLoading, setMessagesLoading] = useState(true);
+  const [groupLoading, setGroupLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const userId = auth.currentUser?.uid;
   const validation = validateMessage(text);
+  const classCode = group?.classCode;
+  const classLabel = group ? getClassDisplayName(classCode) : "チャット";
+  const classSchedule = getClassScheduleLabel(classCode);
+  const loading = messagesLoading || groupLoading;
+  const chatUnavailable = !group && !groupLoading;
 
   useEffect(() => {
-    setLoading(true);
+    setGroupLoading(true);
+    setGroup(null);
     setError("");
+
+    const unsubscribe = subscribeToGroup({
+      groupId,
+      onGroup: (nextGroup) => {
+        setGroup(nextGroup);
+        setGroupLoading(false);
+        if (!nextGroup) {
+          setError("対象のチャットが見つかりません。");
+        }
+      },
+      onError: (subscribeError) => {
+        setError(subscribeError.message || "チャット情報を取得できませんでした。");
+        setGroupLoading(false);
+      },
+    });
+
+    return () => unsubscribe();
+  }, [groupId]);
+
+  useEffect(() => {
+    setMessagesLoading(true);
 
     const unsubscribe = subscribeToMessages({
       groupId,
       onMessages: (nextMessages) => {
         setMessages(nextMessages);
-        setLoading(false);
+        setMessagesLoading(false);
       },
       onError: (subscribeError) => {
         setError(subscribeError.message || "メッセージを取得できませんでした。");
-        setLoading(false);
+        setMessagesLoading(false);
       },
     });
 
@@ -99,7 +134,23 @@ export default function ChatPage() {
         <Button variant="ghost" size="sm" onClick={() => navigate(chatsPath())}>
           チャット一覧に戻る
         </Button>
-        <strong>チャット</strong>
+        <div style={{ textAlign: "center", minWidth: 0, flex: 1 }}>
+          <strong style={{
+            display: "block",
+            color: C.ink,
+            lineHeight: 1.25,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}>
+            {groupLoading ? "チャット" : classLabel}
+          </strong>
+          {!groupLoading && classSchedule && (
+            <span style={{ display: "block", fontSize: 11.5, color: C.inkFaint }}>
+              {classSchedule}
+            </span>
+          )}
+        </div>
         <div style={{ width: 32 }} />
       </div>
 
@@ -163,6 +214,7 @@ export default function ChatPage() {
             value={text}
             onChange={(event) => setText(event.target.value)}
             placeholder="メッセージ"
+            disabled={chatUnavailable}
             onKeyDown={(event) => {
               if (event.key === "Enter" && !event.nativeEvent.isComposing && !event.isComposing) {
                 event.preventDefault();
@@ -171,7 +223,7 @@ export default function ChatPage() {
             }}
             style={{ flex: 1 }}
           />
-          <Button onClick={handleSend} disabled={sending || !validation.ok}>
+          <Button onClick={handleSend} disabled={sending || !validation.ok || chatUnavailable}>
             送信
           </Button>
         </div>

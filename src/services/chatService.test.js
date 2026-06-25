@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import {
   sendMessage,
+  subscribeToGroup,
   subscribeToMessages,
   validateMessage,
 } from "./chatService";
@@ -128,6 +129,79 @@ describe("subscribeToMessages", () => {
     subscribeToMessages({
       groupId: "group-1",
       onMessages: vi.fn(),
+      onError,
+    });
+
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: "permission denied" }));
+  });
+});
+
+describe("subscribeToGroup", () => {
+  test("returns the Firestore unsubscribe function", () => {
+    const unsubscribe = vi.fn();
+    onSnapshot.mockReturnValueOnce(unsubscribe);
+
+    expect(subscribeToGroup({
+      groupId: "group-1",
+      onGroup: vi.fn(),
+      onError: vi.fn(),
+    })).toBe(unsubscribe);
+  });
+
+  test("passes group data to onGroup", () => {
+    const onGroup = vi.fn();
+    onSnapshot.mockImplementationOnce((_ref, next) => {
+      next({
+        id: "group-1",
+        exists: () => true,
+        data: () => ({ classCode: "53382", members: ["user-1", "user-2"] }),
+      });
+      return vi.fn();
+    });
+
+    subscribeToGroup({
+      groupId: "group-1",
+      onGroup,
+      onError: vi.fn(),
+    });
+
+    expect(onGroup).toHaveBeenCalledWith({
+      id: "group-1",
+      classCode: "53382",
+      members: ["user-1", "user-2"],
+    });
+  });
+
+  test("passes null when the group does not exist", () => {
+    const onGroup = vi.fn();
+    onSnapshot.mockImplementationOnce((_ref, next) => {
+      next({
+        id: "group-1",
+        exists: () => false,
+        data: () => undefined,
+      });
+      return vi.fn();
+    });
+
+    subscribeToGroup({
+      groupId: "group-1",
+      onGroup,
+      onError: vi.fn(),
+    });
+
+    expect(onGroup).toHaveBeenCalledWith(null);
+  });
+
+  test("passes Firestore errors to onError", () => {
+    const onError = vi.fn();
+    onSnapshot.mockImplementationOnce((_ref, _next, errorHandler) => {
+      errorHandler(new Error("permission denied"));
+      return vi.fn();
+    });
+
+    subscribeToGroup({
+      groupId: "group-1",
+      onGroup: vi.fn(),
       onError,
     });
 
