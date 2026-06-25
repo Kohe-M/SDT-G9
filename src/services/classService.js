@@ -1,5 +1,6 @@
 import { syllabusData } from "../data/syllabus";
 import { filterClasses } from "../utils/classUtils";
+import { getMeetingSlots, validateMeetingSlots } from "../utils/meetingSlots";
 
 const TIMETABLE_KEY = "timetable_entries";
 
@@ -9,6 +10,22 @@ export function searchClasses(keyword) {
 
 export function getClassByCode(code) {
   return syllabusData.find((c) => c.code === code) ?? null;
+}
+
+export function getMeetingSlotsByClassCode(code) {
+  const classInfo = getClassByCode(code);
+  return getMeetingSlots(classInfo);
+}
+
+export function hasMeetingSlotsByClassCode(code) {
+  return getMeetingSlotsByClassCode(code).length > 0;
+}
+
+export function getInvalidSyllabusMeetingSlots() {
+  return syllabusData.flatMap((classInfo) => {
+    const errors = validateMeetingSlots(getMeetingSlots(classInfo));
+    return errors.length === 0 ? [] : [{ code: classInfo.code, errors }];
+  });
 }
 
 // Firestore未接続のため時間割をlocalStorageに仮保存する

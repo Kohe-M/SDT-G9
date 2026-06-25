@@ -1,4 +1,4 @@
-export const syllabusData = [
+const rawSyllabusData = [
   { code: "15214", name: "Modern World History", room: "恒KS201", syllabusUrl: "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RvTT/202615214" },
   { code: "15219", name: "Modern World History", room: "明MG001", syllabusUrl: "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RvUR/202615219" },
   { code: "15227", name: "Introduction to Natural Science", room: "恒KS306", syllabusUrl: "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RuP7/202615227" },
@@ -786,3 +786,10 @@ export const syllabusData = [
   { code: "54690", name: "異文化間テーマ演習", room: "AC345", syllabusUrl: "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RxRB/202654690" },
   { code: "54693", name: "現代平和論", room: "AS257", syllabusUrl: "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RxU5/202654693" },
 ];
+
+export const syllabusData = rawSyllabusData.map((classInfo) => ({
+  ...classInfo,
+  meetingSlots: Array.isArray(classInfo.meetingSlots)
+    ? classInfo.meetingSlots
+    : [],
+}));

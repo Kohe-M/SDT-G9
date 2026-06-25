@@ -2,10 +2,14 @@ import { beforeEach, describe, expect, test } from "vitest";
 import {
   addClassToTimetable,
   getClassByCode,
+  getInvalidSyllabusMeetingSlots,
+  getMeetingSlotsByClassCode,
   getMyClasses,
+  hasMeetingSlotsByClassCode,
   removeClassFromTimetable,
   searchClasses,
 } from "./classService";
+import { syllabusData } from "../data/syllabus";
 
 beforeEach(() => {
   localStorage.clear();
@@ -32,6 +36,27 @@ describe("getClassByCode", () => {
 
   test("9桁の範囲外コードでnullを返す", () => {
     expect(getClassByCode("99999999")).toBeNull();
+  });
+});
+
+describe("meeting slot data", () => {
+  test("all production syllabus records expose meetingSlots as an array", () => {
+    expect(syllabusData.length).toBeGreaterThan(0);
+    expect(syllabusData.every((classInfo) => Array.isArray(classInfo.meetingSlots))).toBe(true);
+  });
+
+  test("classes without confirmed meeting slots are distinguishable", () => {
+    expect(getMeetingSlotsByClassCode("53124")).toEqual([]);
+    expect(hasMeetingSlotsByClassCode("53124")).toBe(false);
+  });
+
+  test("missing class codes have no meeting slots", () => {
+    expect(getMeetingSlotsByClassCode("00000")).toEqual([]);
+    expect(hasMeetingSlotsByClassCode("00000")).toBe(false);
+  });
+
+  test("production syllabus meetingSlots contain no invalid values", () => {
+    expect(getInvalidSyllabusMeetingSlots()).toEqual([]);
   });
 });
 
