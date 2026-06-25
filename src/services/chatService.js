@@ -1,10 +1,12 @@
 import {
   collection,
+  deleteDoc,
   doc,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   where,
   writeBatch,
 } from "firebase/firestore";
@@ -83,6 +85,45 @@ export function subscribeToGroup({ groupId, onGroup, onError }) {
       onError?.(error);
     }
   );
+}
+
+export function subscribeToUserChatStates({ userId, onStates, onError }) {
+  const uid = requireValue(userId, "userId");
+  const statesRef = collection(db, "users", uid, "chatStates");
+
+  return onSnapshot(
+    statesRef,
+    (snapshot) => {
+      const states = snapshot.docs.reduce((acc, stateDoc) => {
+        acc[stateDoc.id] = {
+          groupId: stateDoc.id,
+          ...stateDoc.data(),
+        };
+        return acc;
+      }, {});
+
+      onStates(states);
+    },
+    (error) => {
+      onError?.(error);
+    }
+  );
+}
+
+export async function archiveChat({ userId, groupId }) {
+  const uid = requireValue(userId, "userId");
+  const targetGroupId = requireValue(groupId, "groupId");
+
+  await setDoc(doc(db, "users", uid, "chatStates", targetGroupId), {
+    archivedAt: serverTimestamp(),
+  });
+}
+
+export async function restoreChat({ userId, groupId }) {
+  const uid = requireValue(userId, "userId");
+  const targetGroupId = requireValue(groupId, "groupId");
+
+  await deleteDoc(doc(db, "users", uid, "chatStates", targetGroupId));
 }
 
 export async function sendMessage({ groupId, senderId, text }) {

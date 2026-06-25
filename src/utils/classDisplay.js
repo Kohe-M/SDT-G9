@@ -20,12 +20,3 @@ export function getClassDisplayName(classCode, classes = syllabusData) {
 
   return `${classItem.name}（${code}）`;
 }
-
-export function getClassScheduleLabel(classCode, classes = syllabusData) {
-  const classItem = findClassByCode(classCode, classes);
-  const day = classItem?.day ?? classItem?.dayOfWeek;
-  const period = classItem?.period;
-
-  if (!day || !period) return "";
-  return `${day}${period}限`;
-}

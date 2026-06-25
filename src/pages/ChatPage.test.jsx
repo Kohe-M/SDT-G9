@@ -3,10 +3,11 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import ChatPage from "./ChatPage";
 import { auth } from "../firebase";
-import { sendMessage, subscribeToGroup, subscribeToMessages } from "../services/chatService";
+import { archiveChat, sendMessage, subscribeToGroup, subscribeToMessages } from "../services/chatService";
 
 vi.mock("../firebase", () => ({ auth: { currentUser: { uid: "user-1" } } }));
 vi.mock("../services/chatService", () => ({
+  archiveChat: vi.fn(() => Promise.resolve()),
   subscribeToGroup: vi.fn(),
   subscribeToMessages: vi.fn(),
   sendMessage: vi.fn(),
@@ -136,5 +137,21 @@ describe("ChatPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "チャット一覧に戻る" }));
 
     expect(screen.getByTestId("location").textContent).toBe("/chats");
+  });
+
+  test("archives the current chat and returns to /chats", async () => {
+    renderPage();
+
+    fireEvent.click(await screen.findByRole("button", { name: "チャットを終了して一覧から非表示" }));
+    expect(screen.getByText(/相手の一覧にも影響しません/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "非表示にする" }));
+
+    await waitFor(() => {
+      expect(archiveChat).toHaveBeenCalledWith({
+        userId: "user-1",
+        groupId: "group-1",
+      });
+      expect(screen.getByTestId("location").textContent).toBe("/chats");
+    });
   });
 });

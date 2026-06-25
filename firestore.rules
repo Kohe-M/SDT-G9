@@ -57,6 +57,15 @@ service cloud.firestore {
         && get(queuePath(uid)).data.classCode == classCode;
     }
 
+    function ownsUserPath(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isValidChatStateData(data) {
+      return data.keys().hasOnly(['archivedAt'])
+        && data.archivedAt == request.time;
+    }
+
     match /groups/{groupId} {
       allow read: if isMemberData(resource.data);
 
@@ -125,6 +134,17 @@ service cloud.firestore {
       allow delete: if signedIn()
         && request.auth.uid == uid
         && isValidQueueData(resource.data, request.auth.uid);
+    }
+
+    match /users/{uid}/chatStates/{groupId} {
+      allow read: if ownsUserPath(uid);
+
+      allow create, update: if ownsUserPath(uid)
+        && isGroupMember(groupId)
+        && isValidChatStateData(request.resource.data);
+
+      allow delete: if ownsUserPath(uid)
+        && isGroupMember(groupId);
     }
   }
 }

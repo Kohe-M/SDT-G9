@@ -3,13 +3,14 @@ import { useNavigate, useParams } from "react-router-dom";
 import { auth } from "../firebase";
 import { chatsPath } from "../constants/routes";
 import {
+  archiveChat,
   sendMessage,
   subscribeToGroup,
   subscribeToMessages,
   validateMessage,
 } from "../services/chatService";
-import { Button, C, ErrorMessage, TextField } from "../components/DesignSystem";
-import { getClassDisplayName, getClassScheduleLabel } from "../utils/classDisplay";
+import { Button, C, Card, ErrorMessage, TextField } from "../components/DesignSystem";
+import { getClassDisplayName } from "../utils/classDisplay";
 
 function timestampLabel(timestamp) {
   const date = timestamp?.toDate?.();
@@ -31,12 +32,13 @@ export default function ChatPage() {
   const [messagesLoading, setMessagesLoading] = useState(true);
   const [groupLoading, setGroupLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [archiveConfirming, setArchiveConfirming] = useState(false);
+  const [archiving, setArchiving] = useState(false);
   const [error, setError] = useState("");
   const userId = auth.currentUser?.uid;
   const validation = validateMessage(text);
   const classCode = group?.classCode;
   const classLabel = group ? getClassDisplayName(classCode) : "チャット";
-  const classSchedule = getClassScheduleLabel(classCode);
   const loading = messagesLoading || groupLoading;
   const chatUnavailable = !group && !groupLoading;
 
@@ -114,6 +116,23 @@ export default function ChatPage() {
     }
   };
 
+  const handleArchive = async () => {
+    const currentUserId = auth.currentUser?.uid;
+    if (!currentUserId || !group || archiving) return;
+
+    setArchiving(true);
+    setError("");
+
+    try {
+      await archiveChat({ userId: currentUserId, groupId });
+      navigate(chatsPath());
+    } catch (archiveError) {
+      setError(archiveError.message || "チャットを非表示にできませんでした。");
+    } finally {
+      setArchiving(false);
+    }
+  };
+
   return (
     <div style={{
       minHeight: "100vh",
@@ -145,11 +164,6 @@ export default function ChatPage() {
           }}>
             {groupLoading ? "チャット" : classLabel}
           </strong>
-          {!groupLoading && classSchedule && (
-            <span style={{ display: "block", fontSize: 11.5, color: C.inkFaint }}>
-              {classSchedule}
-            </span>
-          )}
         </div>
         <div style={{ width: 32 }} />
       </div>
@@ -166,6 +180,45 @@ export default function ChatPage() {
 
         {!userId && !error && (
           <ErrorMessage message="ログイン情報を取得できません。再読み込みしてください。" />
+        )}
+
+        {group && !archiveConfirming && (
+          <Button
+            type="button"
+            variant="danger"
+            size="sm"
+            onClick={() => setArchiveConfirming(true)}
+            style={{ alignSelf: "flex-start" }}
+          >
+            チャットを終了して一覧から非表示
+          </Button>
+        )}
+
+        {group && archiveConfirming && (
+          <Card style={{ padding: 14, background: C.errorSoft, borderColor: `${C.error}55` }}>
+            <p style={{ margin: "0 0 10px", color: C.ink }}>
+              このチャットを通常一覧から非表示にします。グループとメッセージは削除されず、相手の一覧にも影響しません。
+            </p>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                loading={archiving}
+                onClick={handleArchive}
+              >
+                非表示にする
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setArchiveConfirming(false)}
+              >
+                キャンセル
+              </Button>
+            </div>
+          </Card>
         )}
 
         {loading && <p style={{ color: C.inkSoft }}>読み込み中...</p>}
