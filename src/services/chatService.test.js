@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import {
+  archiveChat,
+  restoreChat,
   sendMessage,
   subscribeToGroup,
   subscribeToMessages,
+  subscribeToUserChatStates,
   validateMessage,
 } from "./chatService";
-import { onSnapshot, writeBatch } from "firebase/firestore";
+import { deleteDoc, onSnapshot, setDoc, writeBatch } from "firebase/firestore";
 
 const batchSet = vi.fn();
 const batchUpdate = vi.fn();
@@ -20,10 +23,12 @@ vi.mock("firebase/firestore", () => ({
     }
     return { id: args.at(-1), path: args.slice(1) };
   }),
+  deleteDoc: vi.fn(() => Promise.resolve()),
   onSnapshot: vi.fn(() => vi.fn()),
   orderBy: vi.fn((field, direction) => ({ field, direction })),
   query: vi.fn((...parts) => ({ parts })),
   serverTimestamp: vi.fn(() => "server-time"),
+  setDoc: vi.fn(() => Promise.resolve()),
   where: vi.fn((field, operator, value) => ({ field, operator, value })),
   writeBatch: vi.fn(() => ({
     set: batchSet,
@@ -206,5 +211,79 @@ describe("subscribeToGroup", () => {
     });
 
     expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: "permission denied" }));
+  });
+});
+
+describe("subscribeToUserChatStates", () => {
+  test("passes user chat states keyed by group id", () => {
+    const onStates = vi.fn();
+    onSnapshot.mockImplementationOnce((_ref, next) => {
+      next({
+        docs: [
+          {
+            id: "group-1",
+            data: () => ({ archivedAt: "server-time" }),
+          },
+        ],
+      });
+      return vi.fn();
+    });
+
+    subscribeToUserChatStates({
+      userId: "user-1",
+      onStates,
+      onError: vi.fn(),
+    });
+
+    expect(onStates).toHaveBeenCalledWith({
+      "group-1": {
+        groupId: "group-1",
+        archivedAt: "server-time",
+      },
+    });
+  });
+});
+
+describe("archiveChat", () => {
+  test("writes only the current user's chat state", async () => {
+    await archiveChat({ userId: "user-1", groupId: "group-1" });
+
+    expect(setDoc).toHaveBeenCalledWith(
+      expect.objectContaining({ path: ["users", "user-1", "chatStates", "group-1"] }),
+      { archivedAt: "server-time" }
+    );
+    expect(deleteDoc).not.toHaveBeenCalled();
+  });
+
+  test("keeps different users' archive states separate", async () => {
+    await archiveChat({ userId: "user-1", groupId: "group-1" });
+    await archiveChat({ userId: "user-2", groupId: "group-1" });
+
+    expect(setDoc).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ path: ["users", "user-1", "chatStates", "group-1"] }),
+      { archivedAt: "server-time" }
+    );
+    expect(setDoc).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ path: ["users", "user-2", "chatStates", "group-1"] }),
+      { archivedAt: "server-time" }
+    );
+  });
+});
+
+describe("restoreChat", () => {
+  test("deletes only the current user's chat state", async () => {
+    await restoreChat({ userId: "user-1", groupId: "group-1" });
+
+    expect(deleteDoc).toHaveBeenCalledWith(
+      expect.objectContaining({ path: ["users", "user-1", "chatStates", "group-1"] })
+    );
+    expect(deleteDoc).not.toHaveBeenCalledWith(
+      expect.objectContaining({ path: ["groups", "group-1"] })
+    );
+    expect(deleteDoc).not.toHaveBeenCalledWith(
+      expect.objectContaining({ path: ["groups", "group-1", "messages"] })
+    );
   });
 });
