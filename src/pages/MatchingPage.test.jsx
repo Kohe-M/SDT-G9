@@ -5,7 +5,6 @@ import MatchingPage from "./MatchingPage";
 import { auth } from "../firebase";
 import {
   cancelMatching,
-  getExistingGroupId,
   startMatching,
   subscribeMatchingCandidates,
   subscribeUserClassGroups,
@@ -14,8 +13,7 @@ import {
 vi.mock("../firebase", () => ({ auth: { currentUser: { uid: "user-1" } } }));
 vi.mock("../services/matchingService", () => ({
   cancelMatching: vi.fn(() => Promise.resolve()),
-  getExistingGroupId: vi.fn(() => Promise.resolve(null)),
-  startMatching: vi.fn(() => Promise.resolve({ status: "waiting" })),
+  startMatching: vi.fn(() => Promise.resolve({ status: "waiting", requestId: "request-current" })),
   subscribeMatchingCandidates: vi.fn(() => vi.fn()),
   subscribeUserClassGroups: vi.fn(() => vi.fn()),
 }));
@@ -43,8 +41,7 @@ afterEach(cleanup);
 beforeEach(() => {
   vi.clearAllMocks();
   auth.currentUser = { uid: "user-1" };
-  getExistingGroupId.mockResolvedValue(null);
-  startMatching.mockResolvedValue({ status: "waiting" });
+  startMatching.mockResolvedValue({ status: "waiting", requestId: "request-current" });
   subscribeMatchingCandidates.mockReturnValue(vi.fn());
   subscribeUserClassGroups.mockReturnValue(vi.fn());
 });
@@ -87,7 +84,8 @@ describe("MatchingPage", () => {
   });
 
   test("detects a matched group from the group subscription without queue deletion", async () => {
-    subscribeUserClassGroups.mockImplementationOnce(({ onMatched }) => {
+    subscribeUserClassGroups.mockImplementationOnce(({ requestId, onMatched }) => {
+      expect(requestId).toBe("request-current");
       onMatched("group-1");
       return vi.fn();
     });
@@ -100,6 +98,19 @@ describe("MatchingPage", () => {
     });
     expect(cancelMatching).toHaveBeenCalledTimes(1);
     expect(cancelMatching).toHaveBeenCalledWith({ userId: "user-1" });
+  });
+
+  test("passes the current requestId when watching for matched groups", async () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "マッチング開始" }));
+
+    await screen.findByRole("button", { name: "待機をキャンセル" });
+
+    expect(subscribeUserClassGroups).toHaveBeenCalledWith(expect.objectContaining({
+      userId: "user-1",
+      classCode: "53382",
+      requestId: "request-current",
+    }));
   });
 
   test("settles only once when queue and group subscriptions both report a match", async () => {
@@ -148,18 +159,38 @@ describe("MatchingPage", () => {
     consoleError.mockRestore();
   });
 
-  test("cleans up only the current user's queue when an existing group is found", async () => {
-    getExistingGroupId.mockResolvedValueOnce("group-1");
+  test("does not navigate to a past chat immediately after starting matching", async () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "マッチング開始" }));
+
+    await screen.findByRole("button", { name: "待機をキャンセル" });
+
+    expect(screen.getByTestId("location").textContent).toBe("/matching/53382");
+    expect(startMatching).toHaveBeenCalledWith({ userId: "user-1", classCode: "53382" });
+    expect(cancelMatching).not.toHaveBeenCalled();
+  });
+
+  test("navigates to the new group reported for the current rematch", async () => {
+    let groupMatched;
+    startMatching.mockResolvedValueOnce({ status: "waiting", requestId: "request-rematch" });
+    subscribeUserClassGroups.mockImplementationOnce(({ requestId, onMatched }) => {
+      expect(requestId).toBe("request-rematch");
+      groupMatched = onMatched;
+      return vi.fn();
+    });
 
     renderPage();
     fireEvent.click(screen.getByRole("button", { name: "マッチング開始" }));
 
     await waitFor(() => {
-      expect(screen.getByTestId("location").textContent).toBe("/chat/group-1");
+      expect(groupMatched).toBeTypeOf("function");
     });
-    expect(startMatching).not.toHaveBeenCalled();
-    expect(cancelMatching).toHaveBeenCalledWith({ userId: "user-1" });
-    expect(cancelMatching).not.toHaveBeenCalledWith({ userId: "user-2" });
+    groupMatched("new-group-id");
+
+    await waitFor(() => {
+      expect(screen.getByTestId("location").textContent).toBe("/chat/new-group-id");
+    });
+    expect(screen.getByTestId("location").textContent).not.toBe("/chat/old-group-id");
   });
 
   test("cancels only the current user's queue", async () => {

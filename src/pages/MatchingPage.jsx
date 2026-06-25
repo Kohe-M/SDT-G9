@@ -5,7 +5,6 @@ import { chatPath, timetablePath } from "../constants/routes";
 import { getClassByCode } from "../services/classService";
 import {
   cancelMatching,
-  getExistingGroupId,
   startMatching,
   subscribeMatchingCandidates,
   subscribeUserClassGroups,
@@ -114,13 +113,8 @@ export default function MatchingPage() {
     setStatus("registering");
 
     try {
-      const existingGroupId = await getExistingGroupId({ userId, classCode });
-      if (existingGroupId) {
-        await finishMatching(existingGroupId);
-        return;
-      }
-
-      await startMatching({ userId, classCode });
+      const matchingResult = await startMatching({ userId, classCode });
+      const requestId = matchingResult.requestId;
       cleanupQueueRef.current = true;
       setStatus("waiting");
 
@@ -128,6 +122,7 @@ export default function MatchingPage() {
       const groupUnsubscribe = subscribeUserClassGroups({
         userId,
         classCode,
+        requestId,
         onMatched: (groupId) => {
           finishMatching(groupId);
         },
